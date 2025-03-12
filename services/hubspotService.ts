@@ -4,6 +4,7 @@ import { Contact, Donation, Campaign, DashboardMetrics } from '../types/hubspot'
 
 class HubSpotService {
   private client: Client;
+  private readonly PAGE_SIZE = 100;
 
   constructor(accessToken: string) {
     this.client = new Client({ accessToken });
@@ -11,46 +12,59 @@ class HubSpotService {
 
   async getContacts(tipo?: 'Afiliado' | 'Simpatizante'): Promise<Contact[]> {
     try {
-      const searchRequest: PublicObjectSearchRequest = {
-        properties: [
-          'firstname', 
-          'lastname', 
-          'email', 
-          'relacion_con_vox',
-          'apl_cuota_afiliado',
-          'provincia',
-          'municipio',
-          'pais',
-          'createdate'
-        ],
-        limit: 100
-      };
+      let allContacts: Contact[] = [];
+      let after: string | undefined;
+      
+      do {
+        const searchRequest: PublicObjectSearchRequest = {
+          properties: [
+            'firstname', 
+            'lastname', 
+            'email', 
+            'relacion_con_vox',
+            'apl_cuota_afiliado',
+            'provincia',
+            'municipio',
+            'pais',
+            'createdate'
+          ],
+          limit: this.PAGE_SIZE,
+          after
+        };
 
-      if (tipo) {
-        searchRequest.filterGroups = [{
-          filters: [{
-            propertyName: 'relacion_con_vox',
-            operator: FilterOperatorEnum.Eq,
-            value: tipo
-          }]
-        }];
-      }
-
-      const apiResponse = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
-      return apiResponse.results.map(contact => ({
-        id: contact.id,
-        properties: {
-          email: contact.properties.email || '',
-          firstname: contact.properties.firstname,
-          lastname: contact.properties.lastname,
-          tipo_contacto: contact.properties.relacion_con_vox as 'Afiliado' | 'Simpatizante' | undefined,
-          fecha_afiliacion: contact.properties.createdate,
-          region: contact.properties.provincia,
-          municipio: contact.properties.municipio,
-          pais: contact.properties.pais,
-          cuota_afiliado: contact.properties.apl_cuota_afiliado ? Number(contact.properties.apl_cuota_afiliado) : 0
+        if (tipo) {
+          searchRequest.filterGroups = [{
+            filters: [{
+              propertyName: 'relacion_con_vox',
+              operator: FilterOperatorEnum.Eq,
+              value: tipo
+            }]
+          }];
         }
-      })) as Contact[];
+
+        const apiResponse = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
+        
+        const contacts = apiResponse.results.map(contact => ({
+          id: contact.id,
+          properties: {
+            email: contact.properties.email || '',
+            firstname: contact.properties.firstname,
+            lastname: contact.properties.lastname,
+            tipo_contacto: contact.properties.relacion_con_vox as 'Afiliado' | 'Simpatizante' | undefined,
+            fecha_afiliacion: contact.properties.createdate,
+            region: contact.properties.provincia,
+            municipio: contact.properties.municipio,
+            pais: contact.properties.pais,
+            cuota_afiliado: contact.properties.apl_cuota_afiliado ? Number(contact.properties.apl_cuota_afiliado) : 0
+          }
+        })) as Contact[];
+
+        allContacts = allContacts.concat(contacts);
+        after = apiResponse.paging?.next?.after;
+
+      } while (after);
+
+      return allContacts;
     } catch (error) {
       console.error('Error al obtener contactos:', error);
       return [];
@@ -59,20 +73,33 @@ class HubSpotService {
 
   async getDonations(): Promise<Donation[]> {
     try {
-      const searchRequest = {
-        properties: ['importe', 'createdate', 'hs_object_id'],
-        limit: 100
-      };
+      let allDonations: Donation[] = [];
+      let after: string | undefined;
 
-      const apiResponse = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
-      return apiResponse.results.map(donation => ({
-        id: donation.id,
-        properties: {
-          amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
-          date: donation.properties.createdate,
-          contact_id: donation.properties.hs_object_id
-        }
-      })) as Donation[];
+      do {
+        const searchRequest = {
+          properties: ['importe', 'createdate', 'hs_object_id'],
+          limit: this.PAGE_SIZE,
+          after
+        };
+
+        const apiResponse = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
+        
+        const donations = apiResponse.results.map(donation => ({
+          id: donation.id,
+          properties: {
+            amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
+            date: donation.properties.createdate,
+            contact_id: donation.properties.hs_object_id
+          }
+        })) as Donation[];
+
+        allDonations = allDonations.concat(donations);
+        after = apiResponse.paging?.next?.after;
+
+      } while (after);
+
+      return allDonations;
     } catch (error) {
       console.error('Error al obtener donaciones:', error);
       return [];
@@ -104,11 +131,15 @@ class HubSpotService {
 
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     try {
+      console.log('Iniciando obtención de métricas...');
+      
       const [afiliados, simpatizantes, donaciones] = await Promise.all([
         this.getContacts('Afiliado'),
         this.getContacts('Simpatizante'),
         this.getDonations()
       ]);
+
+      console.log(`Datos obtenidos: ${afiliados.length} afiliados, ${simpatizantes.length} simpatizantes, ${donaciones.length} donaciones`);
 
       const distribucionRegional = this.calcularDistribucionRegional(afiliados.concat(simpatizantes));
       const totalDonaciones = donaciones.reduce((sum, d) => sum + d.properties.amount, 0);
