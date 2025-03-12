@@ -2,6 +2,19 @@ import { Client } from '@hubspot/api-client';
 import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum, SimplePublicObjectWithAssociations } from '@hubspot/api-client/lib/codegen/crm/contacts';
 import { Contact, Donation, Campaign } from '../types/hubspot';
 
+interface ObjectSchema {
+  name: string;
+  label: string;
+  properties: Array<{
+    name: string;
+    label: string;
+    type: string;
+    fieldType: string;
+    description?: string;
+    options?: Array<{ label: string; value: string }>;
+  }>;
+}
+
 interface DashboardMetrics {
   totalAfiliados: number;
   totalSimpatizantes: number;
@@ -33,6 +46,7 @@ class HubSpotService {
   private contactSummaryCache: ContactSummary | null = null;
   private contactSummaryCacheTime: number = 0;
   private readonly CACHE_TTL = 3600000; // 1 hora en milisegundos
+  private schemaCache: Map<string, ObjectSchema> = new Map();
 
   constructor(accessToken: string) {
     this.client = new Client({ accessToken });
@@ -181,6 +195,151 @@ class HubSpotService {
         tasaConversion: 0,
         fuentesAdquisicion: []
       };
+    }
+  }
+
+  /**
+   * Obtiene el schema completo de un objeto de HubSpot
+   * @param objectType Tipo de objeto (contacts, deals, 2-134403413 para donaciones, etc)
+   */
+  async getObjectSchema(objectType: string): Promise<ObjectSchema> {
+    try {
+      console.log(`Obteniendo schema para ${objectType}...`);
+      
+      let endpoint = '';
+      if (objectType === 'contacts') {
+        endpoint = '/crm/v3/properties/contacts';
+      } else if (objectType === 'deals') {
+        endpoint = '/crm/v3/properties/deals';
+      } else {
+        // Para objetos personalizados
+        endpoint = `/crm/v3/schemas/${objectType}`;
+      }
+
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: endpoint
+      });
+
+      const data = await response.json();
+      
+      // Procesamos la respuesta según el tipo de objeto
+      let properties;
+      if (Array.isArray(data)) {
+        // Para contacts y deals
+        properties = data.map(prop => ({
+          name: prop.name,
+          label: prop.label,
+          type: prop.type,
+          fieldType: prop.fieldType,
+          description: prop.description,
+          options: prop.options
+        }));
+      } else if (data.properties) {
+        // Para objetos personalizados
+        properties = data.properties.map(prop => ({
+          name: prop.name,
+          label: prop.label,
+          type: prop.type,
+          fieldType: prop.fieldType,
+          description: prop.description,
+          options: prop.options
+        }));
+      }
+
+      const schema: ObjectSchema = {
+        name: objectType,
+        label: data.label || objectType,
+        properties: properties || []
+      };
+
+      // Guardamos en caché
+      this.schemaCache.set(objectType, schema);
+
+      return schema;
+    } catch (error) {
+      console.error(`Error al obtener schema para ${objectType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analiza las propiedades disponibles y sugiere métricas relevantes
+   */
+  async analyzeAvailableMetrics(): Promise<{
+    availableMetrics: string[];
+    suggestedCrossReferences: string[];
+    recommendations: string[];
+  }> {
+    try {
+      // Obtener schemas de los objetos principales
+      const [contactSchema, donationSchema] = await Promise.all([
+        this.getObjectSchema('contacts'),
+        this.getObjectSchema('2-134403413')
+      ]);
+
+      const availableMetrics: string[] = [];
+      const suggestedCrossReferences: string[] = [];
+      const recommendations: string[] = [];
+
+      // Analizar propiedades de contactos
+      contactSchema.properties.forEach(prop => {
+        if (prop.fieldType === 'number' || prop.fieldType === 'date' || 
+            prop.fieldType === 'enumeration') {
+          availableMetrics.push(`Contactos - ${prop.label}`);
+        }
+      });
+
+      // Analizar propiedades de donaciones
+      donationSchema.properties.forEach(prop => {
+        if (prop.fieldType === 'number' || prop.fieldType === 'date') {
+          availableMetrics.push(`Donaciones - ${prop.label}`);
+        }
+      });
+
+      // Sugerir cruces de información relevantes
+      suggestedCrossReferences.push(
+        'Donaciones por región',
+        'Frecuencia de donación por tipo de contacto',
+        'Conversión de simpatizante a afiliado por región',
+        'Efectividad de campañas por región'
+      );
+
+      // Generar recomendaciones basadas en los datos disponibles
+      recommendations.push(
+        'Analizar patrones de donación por región y temporada',
+        'Identificar regiones con alta tasa de conversión',
+        'Seguimiento de la efectividad de campañas de captación',
+        'Análisis de tiempo promedio de conversión simpatizante a afiliado'
+      );
+
+      return {
+        availableMetrics,
+        suggestedCrossReferences,
+        recommendations
+      };
+    } catch (error) {
+      console.error('Error al analizar métricas disponibles:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene las propiedades disponibles de todos los objetos relevantes
+   */
+  async getAllSchemas(): Promise<Record<string, ObjectSchema>> {
+    try {
+      const objectTypes = ['contacts', '2-134403413']; // Añadir más tipos según sea necesario
+      const schemas: Record<string, ObjectSchema> = {};
+
+      for (const type of objectTypes) {
+        schemas[type] = await this.getObjectSchema(type);
+      }
+
+      return schemas;
+    } catch (error) {
+      console.error('Error al obtener todos los schemas:', error);
+      throw error;
     }
   }
 }
