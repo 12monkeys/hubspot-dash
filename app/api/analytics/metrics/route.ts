@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       c.properties.hs_campaign_status === 'ACTIVE'
     ).length;
     
-    // Calcular cambios (simulados por ahora) 
+    // Calcular cambios (simulados por ahora)  
     // En una implementación real, estos datos vendrían de comparar con períodos anteriores
     const data = {
       totalAffiliates: dashboardData.totalAffiliates,
