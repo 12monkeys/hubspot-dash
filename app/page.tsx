@@ -8,20 +8,25 @@ import { DashboardMetrics } from '../types/hubspot';
 export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{message: string; details?: string} | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/dashboard');
-        if (!response.ok) {
-          throw new Error('Error en la respuesta del servidor');
-        }
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.details || data.error || 'Error desconocido');
+        }
+        
         setMetrics(data);
-      } catch (err) {
-        setError('Error al cargar los datos del dashboard');
-        console.error(err);
+      } catch (err: any) {
+        setError({
+          message: 'Error al cargar los datos del dashboard',
+          details: err?.message || 'Error desconocido'
+        });
+        console.error('Error detallado:', err);
       } finally {
         setLoading(false);
       }
@@ -40,8 +45,13 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500 text-xl">{error}</div>
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="text-red-500 text-xl mb-2">{error.message}</div>
+        {error.details && (
+          <div className="text-red-400 text-sm mt-2 max-w-md text-center">
+            Detalles: {error.details}
+          </div>
+        )}
       </div>
     );
   }
