@@ -543,6 +543,354 @@ class HubSpotService {
       throw error;
     }
   }
+
+  // Análisis temporal de los datos
+  async getTimeSeriesData(objectType: string, metric: string, timeframe: string) {
+    try {
+      let endpoint = '';
+      let properties = [];
+      
+      switch (objectType) {
+        case 'contacts':
+          endpoint = '/crm/v3/objects/contacts';
+          properties = ['createdate', 'relacion_con_vox', 'apl_cuota_afiliado'];
+          break;
+        case 'campaigns':
+          endpoint = '/marketing/v3/campaigns';
+          properties = ['hs_name', 'hs_created_at'];
+          break;
+        // Otros casos para diferentes objetos
+      }
+      
+      // Calcular fecha de inicio según timeframe
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (timeframe) {
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        case '1y':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      
+      // Formato ISO para filtros
+      const startDateISO = startDate.toISOString();
+      
+      // Construir filtros según métrica
+      let filter = {};
+      switch (metric) {
+        case 'new_contacts':
+          filter = {
+            filterGroups: [{
+              filters: [{
+                propertyName: 'createdate',
+                operator: 'GTE',
+                value: startDateISO
+              }]
+            }]
+          };
+          break;
+        case 'new_affiliates':
+          filter = {
+            filterGroups: [{
+              filters: [
+                {
+                  propertyName: 'relacion_con_vox',
+                  operator: 'EQ',
+                  value: 'Afiliado'
+                },
+                {
+                  propertyName: 'createdate',
+                  operator: 'GTE',
+                  value: startDateISO
+                }
+              ]
+            }]
+          };
+          break;
+        // Otros casos para diferentes métricas
+      }
+      
+      const response = await this.client.apiRequest({
+        method: 'POST',
+        path: `${endpoint}/search`,
+        body: {
+          filterGroups: filter.filterGroups,
+          sorts: [{ propertyName: 'createdate', direction: 'ASCENDING' }],
+          properties,
+          limit: 100
+        }
+      });
+      
+      // Procesar datos para análisis temporal
+      const timeSeriesData = this.processTimeSeriesData(response.results, metric);
+      
+      return timeSeriesData;
+    } catch (error) {
+      console.error(`Error al obtener datos de series temporales: ${error}`);
+      return [];
+    }
+  }
+
+  // Procesar datos para análisis temporal
+  private processTimeSeriesData(data: any[], metric: string) {
+    if (!data || data.length === 0) return [];
+    
+    // Agrupar por día
+    const groupedByDay = data.reduce((acc, item) => {
+      const date = new Date(item.properties.createdate);
+      const dayKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString().split('T')[0];
+      
+      if (!acc[dayKey]) {
+        acc[dayKey] = [];
+      }
+      
+      acc[dayKey].push(item);
+      return acc;
+    }, {});
+    
+    // Convertir a formato de serie temporal
+    const timeSeriesData = Object.keys(groupedByDay).map(day => {
+      const count = groupedByDay[day].length;
+      let value = count;
+      
+      // Cálculos específicos según la métrica
+      switch (metric) {
+        case 'average_quota':
+          const totalQuota = groupedByDay[day].reduce((sum, item) => {
+            return sum + (parseFloat(item.properties.apl_cuota_afiliado) || 0);
+          }, 0);
+          value = totalQuota / count;
+          break;
+        // Otros cálculos específicos
+      }
+      
+      return {
+        date: day,
+        value: value
+      };
+    });
+    
+    return timeSeriesData;
+  }
+
+  // Obtener contactos por campaña
+  async getContactsByCampaign(campaignId: string) {
+    try {
+      // Primero obtenemos los contactos que han interactuado con la campaña
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: `/marketing/v3/campaigns/${campaignId}/contacts`,
+        qs: {
+          limit: 100
+        }
+      });
+      
+      if (!response.results || response.results.length === 0) {
+        return [];
+      }
+      
+      // Obtenemos los detalles de cada contacto
+      const contactIds = response.results.map(result => result.id);
+      const contactDetails = await this.getContactsByIds(contactIds);
+      
+      return contactDetails;
+    } catch (error) {
+      console.error(`Error al obtener contactos por campaña: ${error}`);
+      return [];
+    }
+  }
+
+  // Obtener contactos por IDs
+  async getContactsByIds(contactIds: string[]) {
+    try {
+      if (!contactIds || contactIds.length === 0) return [];
+      
+      // Dividir en chunks de 100 para respetar límites de API
+      const chunks = this.chunkArray(contactIds, 100);
+      let allContacts = [];
+      
+      for (const chunk of chunks) {
+        const response = await this.client.apiRequest({
+          method: 'POST',
+          path: '/crm/v3/objects/contacts/batch/read',
+          body: {
+            inputs: chunk.map(id => ({ id })),
+            properties: [
+              'firstname', 
+              'lastname', 
+              'email', 
+              'relacion_con_vox', 
+              'fecha_de_afiliacion',
+              'comunidad_autonoma',
+              'apl_cuota_afiliado',
+              'intereses',
+              'preocupaciones'
+            ]
+          }
+        });
+        
+        if (response.results) {
+          allContacts = [...allContacts, ...response.results];
+        }
+      }
+      
+      return allContacts;
+    } catch (error) {
+      console.error(`Error al obtener contactos por IDs: ${error}`);
+      return [];
+    }
+  }
+
+  // Dividir array en chunks
+  private chunkArray(array, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+
+  // Obtener workflows y su efectividad
+  async getWorkflows() {
+    try {
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: '/automation/v3/workflows',
+        qs: {
+          limit: 100
+        }
+      });
+      
+      return response.workflows || [];
+    } catch (error) {
+      console.error(`Error al obtener workflows: ${error}`);
+      return [];
+    }
+  }
+
+  // Análisis de efectividad de campañas
+  async analyzeCampaignEffectiveness() {
+    try {
+      // Obtenemos todas las campañas
+      const campaigns = await this.getCampaigns();
+      
+      // Análisis de cada campaña
+      const campaignAnalysis = await Promise.all(campaigns.map(async (campaign) => {
+        // Obtenemos contactos influenciados por esta campaña
+        const contacts = await this.getContactsByCampaign(campaign.id);
+        
+        // Segmentamos por tipo
+        const affiliates = contacts.filter(c => 
+          c.properties.relacion_con_vox === 'Afiliado'
+        );
+        
+        const sympathizers = contacts.filter(c => 
+          c.properties.relacion_con_vox === 'Simpatizante'
+        );
+        
+        // Análisis regional
+        const regionDistribution = this.analyzeRegionDistribution(contacts);
+        
+        // Análisis de cuotas
+        const quotaAnalysis = this.analyzeQuotas(affiliates);
+        
+        return {
+          id: campaign.id,
+          name: campaign.properties.hs_name,
+          totalContacts: contacts.length,
+          affiliatesCount: affiliates.length,
+          sympathizersCount: sympathizers.length,
+          conversionRate: contacts.length > 0 ? affiliates.length / contacts.length : 0,
+          regionDistribution,
+          quotaAnalysis,
+          startDate: campaign.properties.hs_start_date,
+          endDate: campaign.properties.hs_end_date,
+          status: campaign.properties.hs_campaign_status
+        };
+      }));
+      
+      return campaignAnalysis;
+    } catch (error) {
+      console.error(`Error al analizar efectividad de campañas: ${error}`);
+      return [];
+    }
+  }
+
+  // Analizar distribución regional
+  private analyzeRegionDistribution(contacts) {
+    const regionCounts = contacts.reduce((acc, contact) => {
+      const region = contact.properties.comunidad_autonoma || 'Desconocida';
+      
+      if (!acc[region]) {
+        acc[region] = 0;
+      }
+      
+      acc[region]++;
+      return acc;
+    }, {});
+    
+    // Convertir a array para ordenar
+    return Object.keys(regionCounts).map(region => ({
+      region,
+      count: regionCounts[region],
+      percentage: contacts.length > 0 ? (regionCounts[region] / contacts.length) * 100 : 0
+    })).sort((a, b) => b.count - a.count);
+  }
+
+  // Analizar cuotas
+  private analyzeQuotas(affiliates) {
+    if (!affiliates || affiliates.length === 0) {
+      return {
+        averageQuota: 0,
+        totalRevenue: 0,
+        quotaDistribution: []
+      };
+    }
+    
+    // Calcular cuota promedio
+    let totalQuota = 0;
+    let validQuotaCount = 0;
+    const quotaValues = {};
+    
+    affiliates.forEach(affiliate => {
+      const quota = parseFloat(affiliate.properties.apl_cuota_afiliado);
+      if (!isNaN(quota)) {
+        totalQuota += quota;
+        validQuotaCount++;
+        
+        // Agrupar por valor de cuota
+        const quotaKey = quota.toString();
+        if (!quotaValues[quotaKey]) {
+          quotaValues[quotaKey] = 0;
+        }
+        quotaValues[quotaKey]++;
+      }
+    });
+    
+    const averageQuota = validQuotaCount > 0 ? totalQuota / validQuotaCount : 0;
+    
+    // Convertir distribución de cuotas a array
+    const quotaDistribution = Object.keys(quotaValues).map(quota => ({
+      quota: parseFloat(quota),
+      count: quotaValues[quota],
+      percentage: (quotaValues[quota] / validQuotaCount) * 100
+    })).sort((a, b) => a.quota - b.quota);
+    
+    return {
+      averageQuota,
+      totalRevenue: totalQuota,
+      quotaDistribution
+    };
+  }
 }
 
 export default HubSpotService; 
