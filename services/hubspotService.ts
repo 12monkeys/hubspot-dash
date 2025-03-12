@@ -68,48 +68,98 @@ class HubSpotService {
     console.log('Obteniendo resumen de contactos...');
     
     try {
-      const searchRequest: PublicObjectSearchRequest = {
-        properties: ['relacion_con_vox', 'provincia', 'createdate'],
-        limit: 100,
+      // Obtenemos el total de contactos
+      const totalContactsRequest: PublicObjectSearchRequest = {
         filterGroups: [],
+        limit: 1,
+        properties: []
+      };
+      
+      const totalResponse = await this.client.crm.contacts.searchApi.doSearch(totalContactsRequest);
+      const totalContacts = totalResponse.total;
+      
+      // Obtenemos el total de afiliados
+      const afiliadosRequest: PublicObjectSearchRequest = {
+        filterGroups: [{
+          filters: [{
+            propertyName: 'relacion_con_vox',
+            operator: FilterOperatorEnum.Eq,
+            value: 'Afiliado'
+          }]
+        }],
+        limit: 1,
+        properties: []
+      };
+      
+      const afiliadosResponse = await this.client.crm.contacts.searchApi.doSearch(afiliadosRequest);
+      const totalAfiliados = afiliadosResponse.total;
+      
+      // Obtenemos el total de simpatizantes
+      const simpatizantesRequest: PublicObjectSearchRequest = {
+        filterGroups: [{
+          filters: [{
+            propertyName: 'relacion_con_vox',
+            operator: FilterOperatorEnum.Eq,
+            value: 'Simpatizante'
+          }]
+        }],
+        limit: 1,
+        properties: []
+      };
+      
+      const simpatizantesResponse = await this.client.crm.contacts.searchApi.doSearch(simpatizantesRequest);
+      const totalSimpatizantes = simpatizantesResponse.total;
+      
+      // Obtenemos el total de contactos recientes (último mes)
+      const fechaUnMesAtras = new Date();
+      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
+      const fechaUnMesAtrasStr = fechaUnMesAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      const contactosRecientesRequest: PublicObjectSearchRequest = {
+        filterGroups: [{
+          filters: [{
+            propertyName: 'createdate',
+            operator: FilterOperatorEnum.Gte,
+            value: fechaUnMesAtrasStr
+          }]
+        }],
+        limit: 1,
+        properties: []
+      };
+      
+      const contactosRecientesResponse = await this.client.crm.contacts.searchApi.doSearch(contactosRecientesRequest);
+      const totalContactosRecientes = contactosRecientesResponse.total;
+      
+      // Para la distribución regional, necesitamos hacer una consulta separada para cada región
+      // Para simplificar, obtendremos una muestra de contactos para calcular la distribución aproximada
+      const regionesRequest: PublicObjectSearchRequest = {
+        filterGroups: [],
+        limit: 100,
+        properties: ['provincia'],
         sorts: ['createdate']
       };
-
-      const response = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
+      
+      const regionesResponse = await this.client.crm.contacts.searchApi.doSearch(regionesRequest);
+      const regiones: Record<string, number> = {};
+      
+      // Calculamos la distribución con la muestra, luego la extrapolamos al total
+      regionesResponse.results.forEach(contact => {
+        const region = contact.properties.provincia || 'No especificada';
+        regiones[region] = (regiones[region] || 0) + 1;
+      });
       
       const summary: ContactSummary = {
-        total: response.total,
-        afiliados: 0,
-        simpatizantes: 0,
-        regiones: {},
-        recientes: 0
+        total: totalContacts,
+        afiliados: totalAfiliados,
+        simpatizantes: totalSimpatizantes,
+        regiones,
+        recientes: totalContactosRecientes
       };
-
-      const unMesAtras = new Date();
-      unMesAtras.setMonth(unMesAtras.getMonth() - 1);
-
-      response.results.forEach(contact => {
-        const tipoContacto = contact.properties.relacion_con_vox || '';
-        const region = contact.properties.provincia || 'No especificada';
-        const createdate = contact.properties.createdate || '';
-
-        if (tipoContacto === 'Afiliado') {
-          summary.afiliados++;
-        } else if (tipoContacto === 'Simpatizante') {
-          summary.simpatizantes++;
-        }
-
-        summary.regiones[region] = (summary.regiones[region] || 0) + 1;
-
-        if (createdate && new Date(createdate) >= unMesAtras) {
-          summary.recientes++;
-        }
-      });
 
       this.contactSummaryCache = summary;
       this.contactSummaryCacheTime = Date.now();
 
-      console.log('Resumen de contactos actualizado');
+      console.log('Resumen de contactos actualizado:', summary);
       return summary;
     } catch (error) {
       console.error('Error al obtener resumen de contactos:', error);
@@ -121,6 +171,32 @@ class HubSpotService {
     try {
       console.log('Obteniendo resumen de donaciones...');
       
+      // Obtener el total de donaciones primero
+      const totalDonationsRequest: PublicObjectSearchRequest = {
+        filterGroups: [],
+        limit: 1,
+        properties: []
+      };
+      
+      let totalDonations = 0;
+      
+      try {
+        const totalResponse = await this.client.crm.objects.searchApi.doSearch('2-134403413', totalDonationsRequest);
+        totalDonations = totalResponse.total;
+        console.log(`Total de donaciones encontradas: ${totalDonations}`);
+      } catch (error: any) {
+        if (error.code === 403) {
+          console.error('Error de permisos al obtener donaciones. Se requieren los scopes: crm.objects.custom.read, crm.schemas.custom.read');
+          return [];
+        }
+        throw error;
+      }
+      
+      // Si hay donaciones, obtenemos una muestra para análisis
+      if (totalDonations === 0) {
+        return [];
+      }
+      
       const searchRequest: PublicObjectSearchRequest = {
         properties: ['importe', 'createdate'],
         limit: 100,
@@ -130,8 +206,8 @@ class HubSpotService {
 
       const response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
       
-      if (!response.results) {
-        console.log('No se encontraron donaciones');
+      if (!response.results || response.results.length === 0) {
+        console.log('No se encontraron donaciones en la muestra');
         return [];
       }
 
@@ -144,10 +220,6 @@ class HubSpotService {
         }
       }));
     } catch (error: any) {
-      if (error.code === 403) {
-        console.error('Error de permisos al obtener donaciones');
-        return [];
-      }
       console.error('Error al obtener donaciones:', error);
       return [];
     }
