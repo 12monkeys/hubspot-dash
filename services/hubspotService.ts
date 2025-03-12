@@ -227,7 +227,7 @@ class HubSpotService {
       let properties;
       if (Array.isArray(data)) {
         // Para contacts y deals
-        properties = data.map(prop => ({
+        properties = data.map((prop: any) => ({
           name: prop.name,
           label: prop.label,
           type: prop.type,
@@ -237,7 +237,7 @@ class HubSpotService {
         }));
       } else if (data.properties) {
         // Para objetos personalizados
-        properties = data.properties.map(prop => ({
+        properties = data.properties.map((prop: any) => ({
           name: prop.name,
           label: prop.label,
           type: prop.type,
