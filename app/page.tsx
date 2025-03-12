@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import HubSpotService from '../services/hubspotService';
 import MetricasGenerales from '../components/MetricasGenerales';
 import DistribucionRegional from '../components/DistribucionRegional';
 import { DashboardMetrics } from '../types/hubspot';
@@ -14,9 +13,12 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const hubspotService = new HubSpotService(process.env.NEXT_PUBLIC_HUBSPOT_ACCESS_TOKEN || '');
-        const dashboardMetrics = await hubspotService.getDashboardMetrics();
-        setMetrics(dashboardMetrics);
+        const response = await fetch('/api/dashboard');
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        const data = await response.json();
+        setMetrics(data);
       } catch (err) {
         setError('Error al cargar los datos del dashboard');
         console.error(err);
