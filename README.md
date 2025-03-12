@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dashboard Político HubSpot
 
-## Getting Started
+Este dashboard proporciona una visualización interactiva de los datos almacenados en HubSpot relacionados con afiliados, simpatizantes, donaciones y campañas de un partido político.
 
-First, run the development server:
+## Características
 
+- Visualización de métricas clave (KPIs)
+  - Total de afiliados y simpatizantes
+  - Donaciones totales y promedio
+  - Campañas activas
+  - Tasa de conversión
+- Distribución regional de afiliados y simpatizantes
+- Integración con HubSpot API
+- Interfaz moderna y responsive
+
+## Requisitos Previos
+
+- Node.js 18.x o superior
+- Cuenta de HubSpot con acceso API
+- Cuenta de AWS (para manejo seguro de secretos)
+
+## Instalación
+
+1. Clonar el repositorio:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [URL_DEL_REPOSITORIO]
+cd hubspot-dash
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Instalar dependencias:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configurar variables de entorno:
+- Copiar el archivo `.env.example` a `.env.local`
+- Rellenar las variables con los valores correspondientes:
+  - `HUBSPOT_ACCESS_TOKEN`: Token de acceso de HubSpot
+  - `AWS_REGION`: Región de AWS
+  - `AWS_ACCESS_KEY_ID`: ID de clave de acceso de AWS
+  - `AWS_SECRET_ACCESS_KEY`: Clave secreta de AWS
+  - `AWS_SECRET_NAME`: Nombre del secreto en AWS Secrets Manager
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Iniciar el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-## Learn More
+## Uso
 
-To learn more about Next.js, take a look at the following resources:
+El dashboard se actualizará automáticamente cada vez que se cargue la página, mostrando los datos más recientes de HubSpot. Los datos visualizados incluyen:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Métricas generales en la parte superior
+- Gráfico de distribución regional
+- Indicadores de crecimiento y conversión
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Configuración de HubSpot
 
-## Deploy on Vercel
+Para que el dashboard funcione correctamente, asegúrese de tener configurados en HubSpot:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Propiedades personalizadas para contactos:
+   - `tipo_contacto`: Tipo enumerado (Afiliado/Simpatizante)
+   - `fecha_afiliacion`: Fecha
+   - `region`: Texto
+   - `total_donaciones`: Número
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. Objeto personalizado para donaciones con las propiedades:
+   - `amount`: Número
+   - `date`: Fecha
+   - `contact_id`: Referencia a contacto
+   - `campaign`: Texto
+   - `payment_method`: Texto
+
+3. Objeto personalizado para campañas con las propiedades:
+   - `name`: Texto
+   - `start_date`: Fecha
+   - `end_date`: Fecha
+   - `status`: Tipo enumerado (active/completed/planned)
+   - `type`: Texto
+   - `budget`: Número
+   - `results`: Texto
+
+## Seguridad
+
+- Las credenciales de API se manejan de forma segura a través de AWS Secrets Manager
+- Los tokens de acceso nunca se exponen en el frontend
+- Se implementan mejores prácticas de seguridad para el manejo de datos sensibles
+
+## Contribuir
+
+1. Fork del repositorio
+2. Crear una rama para la nueva funcionalidad
+3. Commit de los cambios
+4. Push a la rama
+5. Crear un Pull Request
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
