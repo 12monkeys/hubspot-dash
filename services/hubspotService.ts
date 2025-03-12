@@ -167,17 +167,16 @@ class HubSpotService {
     try {
       const response = await this.client.apiRequest({
         method: 'GET',
-        path: '/marketing/v3/marketing-emails/statistics',
+        path: '/email/public/v1/campaigns/by-id/statistics',
         qs: {
-          startDate,
-          endDate,
-          limit: 100
+          limit: 100,
+          offset: 0
         }
       });
 
       const data = await response.json();
 
-      if (!data || !data.results) {
+      if (!data || !Array.isArray(data.campaigns)) {
         console.error('No email metrics data received from HubSpot API');
         return {
           total: 0,
@@ -186,27 +185,27 @@ class HubSpotService {
       }
 
       const metrics: EmailMetrics = {
-        total: data.total || 0,
-        results: data.results.map((result: any) => ({
+        total: data.campaigns.length,
+        results: data.campaigns.map((campaign: any) => ({
           aggregateStatistic: {
             counters: {
-              sent: result.sent || 0,
-              open: result.opened || 0,
-              delivered: result.delivered || 0,
-              bounce: result.bounced || 0,
-              unsubscribed: result.unsubscribed || 0,
-              click: result.clicked || 0,
-              dropped: result.dropped || 0,
-              selected: result.selected || 0,
-              spamreport: result.spamReports || 0,
-              suppressed: result.suppressed || 0,
-              hardbounced: result.hardBounces || 0,
-              softbounced: result.softBounces || 0,
-              pending: result.pending || 0,
-              contactslost: result.contactsLost || 0,
-              notsent: result.notSent || 0
+              sent: campaign.counters?.sent || 0,
+              open: campaign.counters?.open || 0,
+              delivered: campaign.counters?.delivered || 0,
+              bounce: campaign.counters?.bounce || 0,
+              unsubscribed: campaign.counters?.unsubscribed || 0,
+              click: campaign.counters?.click || 0,
+              dropped: campaign.counters?.dropped || 0,
+              selected: campaign.counters?.selected || 0,
+              spamreport: campaign.counters?.spamreport || 0,
+              suppressed: campaign.counters?.suppressed || 0,
+              hardbounced: campaign.counters?.hardbounced || 0,
+              softbounced: campaign.counters?.softbounced || 0,
+              pending: campaign.counters?.pending || 0,
+              contactslost: campaign.counters?.contactslost || 0,
+              notsent: campaign.counters?.notsent || 0
             },
-            deviceBreakdown: result.deviceBreakdown || {
+            deviceBreakdown: campaign.deviceBreakdown || {
               open_device_type: {
                 computer: 0,
                 mobile: 0,
@@ -219,23 +218,23 @@ class HubSpotService {
               }
             },
             ratios: {
-              clickratio: (result.clicked || 0) / (result.sent || 1) * 100,
-              clickthroughratio: (result.clicked || 0) / (result.opened || 1) * 100,
-              deliveredratio: (result.delivered || 0) / (result.sent || 1) * 100,
-              openratio: (result.opened || 0) / (result.delivered || 1) * 100,
-              unsubscribedratio: (result.unsubscribed || 0) / (result.delivered || 1) * 100,
-              spamreportratio: (result.spamReports || 0) / (result.delivered || 1) * 100,
-              bounceratio: (result.bounced || 0) / (result.sent || 1) * 100,
-              hardbounceratio: (result.hardBounces || 0) / (result.sent || 1) * 100,
-              softbounceratio: (result.softBounces || 0) / (result.sent || 1) * 100,
-              contactslostratio: (result.contactsLost || 0) / (result.sent || 1) * 100,
-              pendingratio: (result.pending || 0) / (result.sent || 1) * 100,
-              notsentratio: (result.notSent || 0) / (result.sent || 1) * 100
+              clickratio: campaign.ratios?.clickratio || 0,
+              clickthroughratio: campaign.ratios?.clickthroughratio || 0,
+              deliveredratio: campaign.ratios?.deliveredratio || 0,
+              openratio: campaign.ratios?.openratio || 0,
+              unsubscribedratio: campaign.ratios?.unsubscribedratio || 0,
+              spamreportratio: campaign.ratios?.spamreportratio || 0,
+              bounceratio: campaign.ratios?.bounceratio || 0,
+              hardbounceratio: campaign.ratios?.hardbounceratio || 0,
+              softbounceratio: campaign.ratios?.softbounceratio || 0,
+              contactslostratio: campaign.ratios?.contactslostratio || 0,
+              pendingratio: campaign.ratios?.pendingratio || 0,
+              notsentratio: campaign.ratios?.notsentratio || 0
             }
           },
           interval: {
-            start: result.timestamp || startDate,
-            end: result.timestamp || endDate
+            start: campaign.startDate || startDate,
+            end: campaign.endDate || endDate
           }
         }))
       };
@@ -299,7 +298,14 @@ class HubSpotService {
         path: '/marketing/v3/campaigns'
       });
 
-      return response.body.results.map((campaign: any) => ({
+      const data = await response.json();
+
+      if (!data || !Array.isArray(data.results)) {
+        console.error('No campaign data received from HubSpot API');
+        return [];
+      }
+
+      return data.results.map((campaign: any) => ({
         id: campaign.id,
         name: campaign.name,
         type: campaign.type,
