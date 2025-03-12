@@ -116,6 +116,12 @@ export interface DashboardMetrics {
   tasaConversion: number;
   tasaEngagement: number;
   emailMetrics: EmailMetrics;
+  cuotaPromedio: number;
+  distribucionCuotas: Array<{
+    rango: string;
+    count: number;
+  }>;
+  ingresoCuotasMensual: number;
   fuentesAdquisicion: Array<{
     source: string;
     count: number;

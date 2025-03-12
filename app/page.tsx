@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import MetricasGenerales from '../components/MetricasGenerales';
 import DistribucionRegional from '../components/DistribucionRegional';
+import MetricasCuotas from '../components/MetricasCuotas';
 import { DashboardMetrics } from '../types/hubspot';
 
 export default function Home() {
@@ -68,6 +69,10 @@ export default function Home() {
       
       <div className="mt-8">
         <DistribucionRegional distribucion={metrics.distribucionRegional} />
+      </div>
+      
+      <div className="mt-8">
+        <MetricasCuotas metrics={metrics} />
       </div>
     </main>
   );

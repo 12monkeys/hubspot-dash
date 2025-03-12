@@ -24,6 +24,10 @@ interface DashboardMetrics {
   distribucionRegional: Array<{ region: string; count: number }>;
   campañasActivas: number;
   tasaConversion: number;
+  // Métricas de cuotas
+  cuotaPromedio: number;
+  distribucionCuotas: Array<{ rango: string; count: number }>;
+  ingresoCuotasMensual: number;
   fuentesAdquisicion: Array<{ source: string; count: number }>;
 }
 
@@ -231,6 +235,8 @@ class HubSpotService {
       
       const contactSummary = await this.getContactSummary();
       const donations = await this.getDonations();
+      // Obtener info de cuotas
+      const cuotasInfo = await this.getCuotasInfo();
 
       const distribucionRegional = Object.entries(contactSummary.regiones)
         .map(([region, count]) => ({ region, count }))
@@ -252,6 +258,10 @@ class HubSpotService {
         distribucionRegional,
         campañasActivas: 0,
         tasaConversion,
+        // Datos de cuotas
+        cuotaPromedio: cuotasInfo.promedio,
+        distribucionCuotas: cuotasInfo.distribucion,
+        ingresoCuotasMensual: cuotasInfo.ingresoMensual,
         fuentesAdquisicion: [{ source: 'Desconocido', count: contactSummary.total }]
       };
     } catch (error) {
@@ -265,7 +275,126 @@ class HubSpotService {
         distribucionRegional: [],
         campañasActivas: 0,
         tasaConversion: 0,
+        // Valores por defecto para cuotas
+        cuotaPromedio: 0,
+        distribucionCuotas: [],
+        ingresoCuotasMensual: 0,
         fuentesAdquisicion: []
+      };
+    }
+  }
+
+  /**
+   * Obtiene información sobre las cuotas de afiliados
+   */
+  private async getCuotasInfo(): Promise<{
+    promedio: number;
+    distribucion: Array<{ rango: string; count: number }>;
+    ingresoMensual: number;
+  }> {
+    try {
+      // Primero obtenemos el total de afiliados para el cálculo posterior
+      const contactSummary = await this.getContactSummary();
+      
+      // Obtenemos afiliados con su información de cuotas
+      const afiliadosRequest: PublicObjectSearchRequest = {
+        filterGroups: [{
+          filters: [{
+            propertyName: 'relacion_con_vox',
+            operator: FilterOperatorEnum.Eq,
+            value: 'Afiliado'
+          }]
+        }],
+        limit: 100, // Muestra para análisis
+        properties: ['apl_cuota_afiliado', 'periodicidad', 'configuracion_de_pago'],
+        sorts: ['createdate']
+      };
+      
+      const response = await this.client.crm.contacts.searchApi.doSearch(afiliadosRequest);
+      
+      // Si no hay resultados o error, devolver valores por defecto
+      if (!response.results || response.results.length === 0) {
+        return {
+          promedio: 0,
+          distribucion: [],
+          ingresoMensual: 0
+        };
+      }
+      
+      // Calculamos el promedio de cuota
+      let totalCuota = 0;
+      let countWithCuota = 0;
+      const rangos: Record<string, number> = {
+        'Menos de 5€': 0,
+        'Entre 5€ y 9€': 0,
+        'Entre 10€ y 14€': 0,
+        'Entre 15€ y 29€': 0,
+        '30€ o más': 0
+      };
+      
+      // Factores de conversión según periodicidad para calcular mensual
+      const factorPeriodicidad: Record<string, number> = {
+        'MENSUAL': 1,
+        'TRIMESTRAL': 1/3,
+        'SEMESTRAL': 1/6,
+        'ANUAL': 1/12
+      };
+      
+      let ingresoMensualTotal = 0;
+      
+      response.results.forEach(afiliado => {
+        const cuota = afiliado.properties.apl_cuota_afiliado 
+          ? Number(afiliado.properties.apl_cuota_afiliado) 
+          : 0;
+          
+        if (cuota > 0) {
+          totalCuota += cuota;
+          countWithCuota++;
+          
+          // Clasificar por rangos
+          if (cuota < 5) rangos['Menos de 5€']++;
+          else if (cuota < 10) rangos['Entre 5€ y 9€']++;
+          else if (cuota < 15) rangos['Entre 10€ y 14€']++;
+          else if (cuota < 30) rangos['Entre 15€ y 29€']++;
+          else rangos['30€ o más']++;
+          
+          // Calcular ingreso mensual equivalente según periodicidad
+          const periodicidad = afiliado.properties.periodicidad || 'MENSUAL';
+          const factor = factorPeriodicidad[periodicidad] || 1;
+          ingresoMensualTotal += cuota * factor;
+        }
+      });
+      
+      // Expandir a la población total de afiliados
+      const factorExpansion = contactSummary.afiliados / response.results.length;
+      ingresoMensualTotal *= factorExpansion;
+      
+      // Convertir rangos a formato de array
+      const distribucion = Object.entries(rangos)
+        .map(([rango, count]) => ({ rango, count }))
+        .sort((a, b) => {
+          // Ordenar por rangos de menor a mayor
+          const orden: Record<string, number> = {
+            'Menos de 5€': 1,
+            'Entre 5€ y 9€': 2,
+            'Entre 10€ y 14€': 3,
+            'Entre 15€ y 29€': 4,
+            '30€ o más': 5
+          };
+          return orden[a.rango] - orden[b.rango];
+        });
+      
+      return {
+        promedio: countWithCuota > 0 ? totalCuota / countWithCuota : 0,
+        distribucion,
+        ingresoMensual: ingresoMensualTotal
+      };
+    } catch (error) {
+      console.error('Error al obtener información de cuotas:', error);
+      return {
+        promedio: 0,
+        distribucion: [],
+        ingresoMensual: 0
       };
     }
   }
