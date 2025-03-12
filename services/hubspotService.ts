@@ -27,6 +27,11 @@ class HubSpotService {
   }
 
   async getDonations(startDate?: Date, endDate?: Date): Promise<Donation[]> {
+    // Por ahora, simularemos que no hay donaciones hasta que configuremos el objeto personalizado
+    console.log('Simulando datos de donaciones mientras se configura el objeto personalizado');
+    return [];
+    
+    /* Código original comentado hasta que se configure el objeto personalizado
     const filters: Filter[] = [];
     if (startDate) {
       filters.push({
@@ -51,9 +56,15 @@ class HubSpotService {
 
     const apiResponse = await this.client.crm.objects.searchApi.doSearch('donations', searchRequest);
     return apiResponse.results as unknown as Donation[];
+    */
   }
 
   async getCampaigns(status?: 'active' | 'completed' | 'planned'): Promise<Campaign[]> {
+    // Por ahora, simularemos que no hay campañas hasta que configuremos el objeto personalizado
+    console.log('Simulando datos de campañas mientras se configura el objeto personalizado');
+    return [];
+    
+    /* Código original comentado hasta que se configure el objeto personalizado
     const filter: Filter | undefined = status ? {
       propertyName: 'status',
       operator: FilterOperatorEnum.Eq,
@@ -68,6 +79,7 @@ class HubSpotService {
 
     const apiResponse = await this.client.crm.objects.searchApi.doSearch('campaigns', searchRequest);
     return apiResponse.results as unknown as Campaign[];
+    */
   }
 
   async getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -79,16 +91,15 @@ class HubSpotService {
     ]);
 
     const distribucionRegional = this.calcularDistribucionRegional(afiliados.concat(simpatizantes));
-    const donacionesTotal = donaciones.reduce((sum, d) => sum + d.properties.amount, 0);
 
     return {
       totalAfiliados: afiliados.length,
       totalSimpatizantes: simpatizantes.length,
-      totalDonaciones: donacionesTotal,
-      donacionesPromedio: donacionesTotal / donaciones.length || 0,
+      totalDonaciones: 0, // Temporalmente en 0 hasta que se configure el objeto personalizado
+      donacionesPromedio: 0, // Temporalmente en 0 hasta que se configure el objeto personalizado
       crecimientoMensual: this.calcularCrecimientoMensual(afiliados.concat(simpatizantes)),
       distribucionRegional,
-      campañasActivas: campañasActivas.length,
+      campañasActivas: 0, // Temporalmente en 0 hasta que se configure el objeto personalizado
       tasaConversion: (afiliados.length / (afiliados.length + simpatizantes.length)) * 100
     };
   }
