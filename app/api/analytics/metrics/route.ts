@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       c.properties.hs_campaign_status === 'ACTIVE'
     ).length;
     
-    // Calcular cambios (simulados por ahora)
+    // Calcular cambios (simulados por ahora) -> Anthropic KEY ->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
     // En una implementación real, estos datos vendrían de comparar con períodos anteriores
     const data = {
       totalAffiliates: dashboardData.totalAffiliates,

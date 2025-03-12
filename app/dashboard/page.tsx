@@ -1,73 +1,121 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Tabs, Tab } from "@/components/Tabs";
+import { useRouter } from "next/navigation";
 import KPIOverview from "@/components/dashboard/KPIOverview";
 import TrendAnalysis from "@/components/dashboard/TrendAnalysis";
-import GeographicDistribution from "@/components/dashboard/GeographicDistribution";
-import CampaignAnalysis from "@/components/dashboard/CampaignAnalysis";
-import AffiliateInsights from "@/components/dashboard/AffiliateInsights";
-import PredictiveAnalytics from "@/components/dashboard/PredictiveAnalytics";
-import { redirect } from "next/navigation";
+import Tabs from "@/components/Tabs";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState("overview");
+  const router = useRouter();
   
-  // Redirigir a login si no hay sesión
   useEffect(() => {
     if (status === "unauthenticated") {
-      redirect("/auth/signin");
+      router.push("/auth/signin");
     }
-  }, [status]);
+  }, [status, router]);
   
   if (status === "loading") {
-    return <div className="flex justify-center items-center h-screen">Cargando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (status === "unauthenticated") {
+    return null; // Redirigirá a través del useEffect
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard de Inteligencia de Negocio</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-700">{session?.user?.email}</span>
-            <button 
-              onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-              className="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300"
-            >
-              Cerrar sesión
-            </button>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard HubSpot</h1>
+          <p className="text-gray-600">Bienvenido, {session?.user?.name || session?.user?.email}</p>
+        </div>
+        <div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Actualizar datos
+          </button>
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <Tabs activeTab={activeTab} onChange={setActiveTab}>
-          <Tab id="overview" title="Visión Global">
-            <div className="space-y-6">
-              <KPIOverview />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <TrendAnalysis />
-                <GeographicDistribution />
-              </div>
-            </div>
-          </Tab>
-          
-          <Tab id="campaigns" title="Análisis de Campañas">
-            <CampaignAnalysis />
-          </Tab>
-          
-          <Tab id="affiliates" title="Insights de Afiliación">
-            <AffiliateInsights />
-          </Tab>
-          
-          <Tab id="predictive" title="Análisis Predictivo">
-            <PredictiveAnalytics />
-          </Tab>
-        </Tabs>
-      </main>
+      <div className="mb-8">
+        <KPIOverview />
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <TrendAnalysis />
+        
+        <div className="bg-white p-4 rounded-lg shadow">
+          <Tabs
+            tabs={[
+              {
+                label: "Desglose por edad",
+                content: (
+                  <div className="h-64 flex items-center justify-center text-gray-500">
+                    Gráfico de distribución por edades
+                  </div>
+                )
+              },
+              {
+                label: "Desglose por región",
+                content: (
+                  <div className="h-64 flex items-center justify-center text-gray-500">
+                    Gráfico de distribución por regiones
+                  </div>
+                )
+              }
+            ]}
+          />
+        </div>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg shadow mb-8">
+        <h2 className="text-xl font-bold mb-4">Campañas Activas</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Inicio</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alcance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversiones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Campaña de Verano</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Activa</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/06/2023</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,245</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">86 (6.9%)</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Newsletter Mensual</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Activa</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">01/03/2023</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3,560</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">198 (5.6%)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
-} 
+}
