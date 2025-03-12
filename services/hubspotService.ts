@@ -1,4 +1,5 @@
 import { Client } from '@hubspot/api-client';
+import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum } from '@hubspot/api-client/lib/codegen/crm/contacts';
 import { Contact, Donation, Campaign, DashboardMetrics } from '../types/hubspot';
 
 class HubSpotService {
@@ -9,48 +10,63 @@ class HubSpotService {
   }
 
   async getContacts(tipo?: 'Afiliado' | 'Simpatizante'): Promise<Contact[]> {
-    const filter = tipo ? { propertyName: 'tipo_contacto', operator: 'EQ', value: tipo } : undefined;
-    const apiResponse = await this.client.crm.contacts.searchApi.doSearch({
+    const filter: Filter | undefined = tipo ? {
+      propertyName: 'tipo_contacto',
+      operator: FilterOperatorEnum.Eq,
+      value: tipo
+    } : undefined;
+
+    const searchRequest: PublicObjectSearchRequest = {
       filterGroups: filter ? [{ filters: [filter] }] : undefined,
       properties: ['firstname', 'lastname', 'email', 'tipo_contacto', 'fecha_afiliacion', 'region', 'ultima_donacion', 'total_donaciones'],
       limit: 100
-    });
+    };
+
+    const apiResponse = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
     return apiResponse.results as unknown as Contact[];
   }
 
   async getDonations(startDate?: Date, endDate?: Date): Promise<Donation[]> {
-    // Asumiendo que las donaciones se almacenan como un objeto personalizado en HubSpot
-    const filters = [];
+    const filters: Filter[] = [];
     if (startDate) {
       filters.push({
         propertyName: 'date',
-        operator: 'GTE',
+        operator: FilterOperatorEnum.Gte,
         value: startDate.toISOString()
       });
     }
     if (endDate) {
       filters.push({
         propertyName: 'date',
-        operator: 'LTE',
+        operator: FilterOperatorEnum.Lte,
         value: endDate.toISOString()
       });
     }
 
-    const apiResponse = await this.client.crm.objects.searchApi.doSearch('donations', {
+    const searchRequest: PublicObjectSearchRequest = {
       filterGroups: filters.length ? [{ filters }] : undefined,
       properties: ['amount', 'date', 'contact_id', 'campaign', 'payment_method'],
       limit: 100
-    });
+    };
+
+    const apiResponse = await this.client.crm.objects.searchApi.doSearch('donations', searchRequest);
     return apiResponse.results as unknown as Donation[];
   }
 
   async getCampaigns(status?: 'active' | 'completed' | 'planned'): Promise<Campaign[]> {
-    const filter = status ? { propertyName: 'status', operator: 'EQ', value: status } : undefined;
-    const apiResponse = await this.client.crm.objects.searchApi.doSearch('campaigns', {
+    const filter: Filter | undefined = status ? {
+      propertyName: 'status',
+      operator: FilterOperatorEnum.Eq,
+      value: status
+    } : undefined;
+
+    const searchRequest: PublicObjectSearchRequest = {
       filterGroups: filter ? [{ filters: [filter] }] : undefined,
       properties: ['name', 'start_date', 'end_date', 'status', 'type', 'budget', 'results'],
       limit: 100
-    });
+    };
+
+    const apiResponse = await this.client.crm.objects.searchApi.doSearch('campaigns', searchRequest);
     return apiResponse.results as unknown as Campaign[];
   }
 
