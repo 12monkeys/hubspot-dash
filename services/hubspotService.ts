@@ -1,5 +1,5 @@
 import { Client } from '@hubspot/api-client';
-import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum } from '@hubspot/api-client/lib/codegen/crm/contacts';
+import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum, SimplePublicObjectWithAssociations } from '@hubspot/api-client/lib/codegen/crm/contacts';
 import { Contact, Donation, Campaign } from '../types/hubspot';
 
 interface DashboardMetrics {
@@ -20,252 +20,168 @@ interface SearchRequest {
   after?: string;
 }
 
+interface ContactSummary {
+  total: number;
+  afiliados: number;
+  simpatizantes: number;
+  regiones: Record<string, number>;
+  recientes: number;
+}
+
 class HubSpotService {
   private client: Client;
-  private readonly PAGE_SIZE = 100;
+  private contactSummaryCache: ContactSummary | null = null;
+  private contactSummaryCacheTime: number = 0;
+  private readonly CACHE_TTL = 3600000; // 1 hora en milisegundos
 
   constructor(accessToken: string) {
     this.client = new Client({ accessToken });
   }
 
-  private async getTotalRecords(objectType: string): Promise<number> {
-    try {
-      const searchRequest: PublicObjectSearchRequest = {
-        filterGroups: [],
-        limit: 1,
-        properties: ['hs_object_id']
-      };
-
-      const response = await this.client.crm.objects.searchApi.doSearch(objectType, searchRequest);
-      return response.total;
-    } catch (error) {
-      console.error(`Error getting total records for ${objectType}:`, error);
-      return 0;
-    }
+  private isCacheValid(): boolean {
+    return (
+      this.contactSummaryCache !== null &&
+      Date.now() - this.contactSummaryCacheTime < this.CACHE_TTL
+    );
   }
 
-  async getContacts(tipo?: 'Afiliado' | 'Simpatizante'): Promise<Contact[]> {
-    try {
-      console.log(`Iniciando búsqueda de contactos${tipo ? ` tipo: ${tipo}` : ''}...`);
-      let allContacts: Contact[] = [];
-      let after: string | undefined;
-      
-      const properties = [
-        'firstname', 
-        'lastname', 
-        'email', 
-        'relacion_con_vox',
-        'apl_cuota_afiliado',
-        'provincia',
-        'municipio',
-        'pais',
-        'createdate'
-      ];
+  private async getContactSummary(): Promise<ContactSummary> {
+    if (this.isCacheValid()) {
+      console.log('Usando caché para resumen de contactos');
+      return this.contactSummaryCache!;
+    }
 
+    console.log('Obteniendo resumen de contactos...');
+    
+    try {
       const searchRequest: PublicObjectSearchRequest = {
-        properties,
-        filterGroups: tipo ? [{
-          filters: [{
-            propertyName: 'relacion_con_vox',
-            operator: FilterOperatorEnum.Eq,
-            value: tipo
-          }]
-        }] : [],
-        limit: this.PAGE_SIZE
+        properties: ['relacion_con_vox', 'provincia', 'createdate'],
+        limit: 100,
+        filterGroups: [],
+        sorts: ['createdate']
       };
 
-      const totalContacts = await this.getTotalRecords('contacts');
-      console.log(`Total de contactos encontrados: ${totalContacts}`);
+      const response = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
       
-      do {
-        if (after) {
-          searchRequest.after = after;
+      const summary: ContactSummary = {
+        total: response.total,
+        afiliados: 0,
+        simpatizantes: 0,
+        regiones: {},
+        recientes: 0
+      };
+
+      const unMesAtras = new Date();
+      unMesAtras.setMonth(unMesAtras.getMonth() - 1);
+
+      response.results.forEach(contact => {
+        const tipoContacto = contact.properties.relacion_con_vox || '';
+        const region = contact.properties.provincia || 'No especificada';
+        const createdate = contact.properties.createdate || '';
+
+        if (tipoContacto === 'Afiliado') {
+          summary.afiliados++;
+        } else if (tipoContacto === 'Simpatizante') {
+          summary.simpatizantes++;
         }
 
-        const apiResponse = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
-        
-        const contacts = apiResponse.results.map(contact => ({
-          id: contact.id,
-          properties: {
-            email: contact.properties.email || '',
-            firstname: contact.properties.firstname,
-            lastname: contact.properties.lastname,
-            tipo_contacto: contact.properties.relacion_con_vox as 'Afiliado' | 'Simpatizante' | undefined,
-            fecha_afiliacion: contact.properties.createdate,
-            region: contact.properties.provincia,
-            municipio: contact.properties.municipio,
-            pais: contact.properties.pais,
-            cuota_afiliado: contact.properties.apl_cuota_afiliado ? Number(contact.properties.apl_cuota_afiliado) : 0
-          }
-        })) as Contact[];
+        summary.regiones[region] = (summary.regiones[region] || 0) + 1;
 
-        allContacts = allContacts.concat(contacts);
-        after = apiResponse.paging?.next?.after;
+        if (createdate && new Date(createdate) >= unMesAtras) {
+          summary.recientes++;
+        }
+      });
 
-        console.log(`Procesados ${allContacts.length} de ${totalContacts} contactos...`);
+      this.contactSummaryCache = summary;
+      this.contactSummaryCacheTime = Date.now();
 
-      } while (after && allContacts.length < totalContacts);
-
-      console.log(`Búsqueda completada. Total de contactos procesados: ${allContacts.length}`);
-      return allContacts;
+      console.log('Resumen de contactos actualizado');
+      return summary;
     } catch (error) {
-      console.error('Error al obtener contactos:', error);
-      return [];
+      console.error('Error al obtener resumen de contactos:', error);
+      throw error;
     }
-  }
-
-  async getEmailMetrics(startDate: string, endDate: string): Promise<any> {
-    console.log('Email metrics functionality temporarily disabled');
-    return {
-      total: 0,
-      results: []
-    };
   }
 
   async getDonations(): Promise<Donation[]> {
     try {
-      console.log('Iniciando búsqueda de donaciones...');
-      let allDonations: Donation[] = [];
-      let after: string | undefined;
-
-      const searchRequest: SearchRequest = {
-        properties: ['importe', 'createdate', 'hs_object_id'],
-        limit: this.PAGE_SIZE
+      console.log('Obteniendo resumen de donaciones...');
+      
+      const searchRequest: PublicObjectSearchRequest = {
+        properties: ['importe', 'createdate'],
+        limit: 100,
+        filterGroups: [],
+        sorts: ['createdate']
       };
 
-      const totalDonations = await this.getTotalRecords('2-134403413');
-      console.log(`Total de donaciones encontradas: ${totalDonations}`);
+      const response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
+      
+      if (!response.results) {
+        console.log('No se encontraron donaciones');
+        return [];
+      }
 
-      do {
-        if (after) {
-          searchRequest.after = after;
+      return response.results.map(donation => ({
+        id: donation.id,
+        properties: {
+          amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
+          date: donation.properties.createdate || new Date().toISOString(),
+          contact_id: donation.id
         }
-
-        try {
-          const apiResponse = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
-          
-          const donations = apiResponse.results.map(donation => ({
-            id: donation.id,
-            properties: {
-              amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
-              date: donation.properties.createdate,
-              contact_id: donation.properties.hs_object_id
-            }
-          })) as Donation[];
-
-          allDonations = allDonations.concat(donations);
-          after = apiResponse.paging?.next?.after;
-
-          console.log(`Procesadas ${allDonations.length} de ${totalDonations} donaciones...`);
-        } catch (error: any) {
-          if (error.code === 403) {
-            console.error('Error de permisos al obtener donaciones. Se requieren los scopes: crm.objects.custom.read, crm.schemas.custom.read');
-            return [];
-          }
-          throw error;
-        }
-
-      } while (after && allDonations.length < totalDonations);
-
-      console.log(`Búsqueda completada. Total de donaciones procesadas: ${allDonations.length}`);
-      return allDonations;
-    } catch (error) {
+      }));
+    } catch (error: any) {
+      if (error.code === 403) {
+        console.error('Error de permisos al obtener donaciones');
+        return [];
+      }
       console.error('Error al obtener donaciones:', error);
       return [];
     }
   }
 
-  async getCampaigns(): Promise<Campaign[]> {
-    try {
-      const response = await this.client.apiRequest({
-        method: 'GET',
-        path: '/marketing/v3/marketing-emails'
-      });
-
-      const data = await response.json();
-
-      if (!data || !Array.isArray(data.results)) {
-        console.error('No campaign data received from HubSpot API');
-        return [];
-      }
-
-      return data.results.map((campaign: any) => ({
-        id: campaign.id,
-        name: campaign.name,
-        type: campaign.type,
-        startDate: campaign.startDate,
-        endDate: campaign.endDate,
-        status: campaign.status,
-        stats: campaign.stats
-      }));
-    } catch (error) {
-      console.error('Error al obtener campañas:', error);
-      return [];
-    }
-  }
-
   async getDashboardMetrics(): Promise<DashboardMetrics> {
-    const [contacts, donations] = await Promise.all([
-      this.getContacts(),
-      this.getDonations()
-    ]);
+    try {
+      console.log('Calculando métricas del dashboard...');
+      
+      const contactSummary = await this.getContactSummary();
+      const donations = await this.getDonations();
 
-    const afiliados = contacts.filter(c => c.properties.tipo_contacto === 'Afiliado');
-    const simpatizantes = contacts.filter(c => c.properties.tipo_contacto === 'Simpatizante');
+      const distribucionRegional = Object.entries(contactSummary.regiones)
+        .map(([region, count]) => ({ region, count }))
+        .sort((a, b) => b.count - a.count);
 
-    const distribucionRegional = this.calcularDistribucionRegional(contacts);
-    const fuentesAdquisicion = this.calcularFuentesAdquisicion(contacts);
+      const tasaConversion = 
+        ((contactSummary.afiliados) / 
+        (contactSummary.afiliados + contactSummary.simpatizantes)) * 100 || 0;
 
-    return {
-      totalAfiliados: afiliados.length,
-      totalSimpatizantes: simpatizantes.length,
-      totalDonaciones: donations.length,
-      donacionesPromedio: donations.reduce((acc, d) => acc + d.properties.amount, 0) / donations.length || 0,
-      crecimientoMensual: this.calcularCrecimientoMensual(contacts),
-      distribucionRegional,
-      campañasActivas: 0,
-      tasaConversion: (afiliados.length / (afiliados.length + simpatizantes.length)) * 100 || 0,
-      fuentesAdquisicion
-    };
-  }
+      const crecimientoMensual = 
+        (contactSummary.recientes / contactSummary.total) * 100 || 0;
 
-  private calcularDistribucionRegional(contacts: Contact[]): { region: string; count: number }[] {
-    const distribucion = contacts.reduce((acc, contact) => {
-      const region = contact.properties.region || 'No especificada';
-      acc[region] = (acc[region] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(distribucion)
-      .map(([region, count]) => ({ region, count }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  private calcularCrecimientoMensual(contacts: Contact[]): number {
-    const mesActual = new Date();
-    const mesAnterior = new Date(mesActual.getFullYear(), mesActual.getMonth() - 1);
-    
-    const contactosMesActual = contacts.filter(c => {
-      const fechaAfiliacion = c.properties.fecha_afiliacion 
-        ? new Date(c.properties.fecha_afiliacion) 
-        : null;
-      return fechaAfiliacion && fechaAfiliacion >= mesAnterior;
-    }).length;
-
-    const contactosTotales = contacts.length;
-    return contactosTotales ? (contactosMesActual / contactosTotales) * 100 : 0;
-  }
-
-  private calcularFuentesAdquisicion(contacts: Contact[]): Array<{ source: string; count: number }> {
-    const sources = contacts.reduce((acc, contact) => {
-      const source = 'Desconocido';
-      acc[source] = (acc[source] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(sources)
-      .map(([source, count]) => ({ source, count }))
-      .sort((a, b) => b.count - a.count);
+      return {
+        totalAfiliados: contactSummary.afiliados,
+        totalSimpatizantes: contactSummary.simpatizantes,
+        totalDonaciones: donations.length,
+        donacionesPromedio: donations.reduce((acc, d) => acc + d.properties.amount, 0) / donations.length || 0,
+        crecimientoMensual,
+        distribucionRegional,
+        campañasActivas: 0,
+        tasaConversion,
+        fuentesAdquisicion: [{ source: 'Desconocido', count: contactSummary.total }]
+      };
+    } catch (error) {
+      console.error('Error al calcular métricas del dashboard:', error);
+      return {
+        totalAfiliados: 0,
+        totalSimpatizantes: 0,
+        totalDonaciones: 0,
+        donacionesPromedio: 0,
+        crecimientoMensual: 0,
+        distribucionRegional: [],
+        campañasActivas: 0,
+        tasaConversion: 0,
+        fuentesAdquisicion: []
+      };
+    }
   }
 }
 
