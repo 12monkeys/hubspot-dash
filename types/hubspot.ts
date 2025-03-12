@@ -7,8 +7,9 @@ export interface Contact {
     tipo_contacto?: 'Afiliado' | 'Simpatizante';
     fecha_afiliacion?: string;
     region?: string;
-    ultima_donacion?: string;
-    total_donaciones?: number;
+    municipio?: string;
+    pais?: string;
+    cuota_afiliado?: number;
   };
 }
 
@@ -18,8 +19,6 @@ export interface Donation {
     amount: number;
     date: string;
     contact_id: string;
-    campaign?: string;
-    payment_method?: string;
   };
 }
 
