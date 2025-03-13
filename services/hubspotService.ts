@@ -316,6 +316,21 @@ class HubSpotService {
     }
   }
 
+  async getCampaigns(): Promise<Workflow[]> {
+    try {
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: '/crm/v3/objects/campaigns',
+      });
+      
+      const data = await response.json();
+      return data.results || [];
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      return [];
+    }
+  }
+
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     try {
       // Get contact summary
@@ -348,12 +363,10 @@ class HubSpotService {
         }));
 
       // Get active campaigns
-      const campaigns = await this.client.apiRequest({
-        method: 'GET',
-        path: '/crm/v3/objects/campaigns',
-      });
-      const campaignsData = await campaigns.json();
-      const campañasActivas = campaignsData.results.filter((c: Campaign) => c.status === 'ACTIVE').length;
+      const campaigns = await this.getCampaigns();
+      const campañasActivas = campaigns.filter(c => 
+        c.properties.hs_campaign_status === 'ACTIVE'
+      ).length;
 
       // Calculate conversion rate (simplified)
       const tasaConversion = contactSummary.total > 0 
