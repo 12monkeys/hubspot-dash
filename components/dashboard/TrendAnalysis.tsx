@@ -80,8 +80,8 @@ export default function TrendAnalysis() {
     const ChartComponent = viewMode === "line" ? LineChart : 
                           viewMode === "area" ? AreaChart : BarChart;
     
-    const DataComponent = viewMode === "line" ? Line : 
-                         viewMode === "area" ? Area : Bar;
+    const DataComponent = (viewMode === "line" ? Line : 
+                         viewMode === "area" ? Area : Bar) as any;
 
     return (
       <ResponsiveContainer width="100%" height={300}>
