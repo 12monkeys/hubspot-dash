@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { createHubSpotClient } from "@/lib/hubspot";
 import { Contact } from "@/types/hubspot";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);

@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { analyzeCampaignEffectiveness } from "@/lib/analytics";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   // Verificar autenticación
   const session = await getServerSession(authOptions);

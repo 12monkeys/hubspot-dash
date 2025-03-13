@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import HubSpotService from '../../../services/hubspotService';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   if (!process.env.HUBSPOT_ACCESS_TOKEN) {
     console.error('HUBSPOT_ACCESS_TOKEN is not defined');
