@@ -1,18 +1,25 @@
 import { MongoClient } from "mongodb";
 
+declare global {
+  var _mongoClientPromise: Promise<MongoClient>;
+}
+
 const uri = process.env.MONGODB_URI;
 if (!uri) {
   throw new Error("Debes definir la variable de entorno MONGODB_URI");
 }
 
+// Ya que hemos verificado que uri no es undefined, TypeScript lo sabrá para el resto del archivo
+const MONGODB_URI: string = uri;
+
 console.log("=== Configuración de MongoDB ===");
-console.log("URI de conexión (parcial):", uri.split('@')[1]); // Solo mostramos la parte después del @ por seguridad
+console.log("URI de conexión (parcial):", MONGODB_URI.split('@')[1]); // Solo mostramos la parte después del @ por seguridad
 console.log("Ambiente:", process.env.NODE_ENV);
 
-let client;
-let clientPromise;
+let client: MongoClient;
+let clientPromise: Promise<MongoClient>;
 
-async function connect() {
+async function connect(): Promise<MongoClient> {
   try {
     console.log("=== Iniciando conexión a MongoDB ===");
     console.log("Opciones de conexión:", {
@@ -22,7 +29,7 @@ async function connect() {
       heartbeatFrequencyMS: 10000
     });
 
-    const client = new MongoClient(uri, {
+    const client = new MongoClient(MONGODB_URI, {
       connectTimeoutMS: 10000,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 10000,
@@ -63,11 +70,11 @@ async function connect() {
     return connection;
   } catch (error) {
     console.error("Error detallado al conectar con MongoDB:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-      uri: uri.includes('@') ? uri.split('@')[1] : 'URI format error'
+      name: error instanceof Error ? error.name : 'Unknown Error',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+      uri: MONGODB_URI.includes('@') ? MONGODB_URI.split('@')[1] : 'URI format error'
     });
     throw error;
   }
@@ -76,7 +83,7 @@ async function connect() {
 if (process.env.NODE_ENV === "development") {
   if (!global._mongoClientPromise) {
     console.log("Creando nueva conexión en desarrollo...");
-    client = new MongoClient(uri, {
+    client = new MongoClient(MONGODB_URI, {
       connectTimeoutMS: 10000,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 10000,
@@ -89,7 +96,7 @@ if (process.env.NODE_ENV === "development") {
   clientPromise = global._mongoClientPromise;
 } else {
   console.log("Creando nueva conexión en producción...");
-  client = new MongoClient(uri, {
+  client = new MongoClient(MONGODB_URI, {
     connectTimeoutMS: 10000,
     socketTimeoutMS: 45000,
     serverSelectionTimeoutMS: 10000,
@@ -101,10 +108,10 @@ if (process.env.NODE_ENV === "development") {
 // Manejar errores de conexión
 clientPromise.catch(error => {
   console.error("Error en la promesa de conexión a MongoDB:", {
-    name: error.name,
-    message: error.message,
-    code: error.code,
-    stack: error.stack
+    name: error instanceof Error ? error.name : 'Unknown Error',
+    message: error instanceof Error ? error.message : String(error),
+    code: (error as any)?.code,
+    stack: error instanceof Error ? error.stack : undefined
   });
 });
 

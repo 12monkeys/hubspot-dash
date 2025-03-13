@@ -1,17 +1,24 @@
-import clientPromise from "./mongodb.js";
+import { MongoClient } from "mongodb";
+import clientPromise from "./mongodb";
 
 const DB_NAME = "hubspot-dash"; // Nombre de la base de datos
 const COLLECTION_NAME = "verification-tokens"; // Nombre de la colección
 
+interface TokenEntry {
+  email: string;
+  token: string;
+  expires: Date;
+}
+
 // Guarda (o actualiza) el token para un email
-export async function setToken(email, token) {
+export async function setToken(email: string, token: string): Promise<void> {
   try {
     console.log("=== Iniciando guardado de token ===");
     console.log("Conectando a MongoDB para guardar token...");
-    const client = await clientPromise;
+    const client: MongoClient = await clientPromise;
     console.log("Conexión establecida, accediendo a la base de datos:", DB_NAME);
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<TokenEntry>(COLLECTION_NAME);
     
     // Verificar si la colección existe
     const collections = await db.listCollections({ name: COLLECTION_NAME }).toArray();
@@ -45,10 +52,10 @@ export async function setToken(email, token) {
     });
   } catch (error) {
     console.error("Error detallado al guardar el token:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: error instanceof Error ? error.name : 'Unknown Error',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
       email
     });
     throw error;
@@ -56,14 +63,14 @@ export async function setToken(email, token) {
 }
 
 // Obtiene el token guardado para un email y lo valida
-export async function getToken(email, token) {
+export async function getToken(email: string, token: string): Promise<TokenEntry | null> {
   try {
     console.log("=== Iniciando verificación de token ===");
     console.log("Conectando a MongoDB para verificar token...");
-    const client = await clientPromise;
+    const client: MongoClient = await clientPromise;
     console.log("Conexión establecida, accediendo a la base de datos:", DB_NAME);
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<TokenEntry>(COLLECTION_NAME);
     
     console.log("Buscando token para email:", email);
     const entry = await collection.findOne({ email, token });
@@ -96,10 +103,10 @@ export async function getToken(email, token) {
     return entry;
   } catch (error) {
     console.error("Error detallado al verificar el token:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: error instanceof Error ? error.name : 'Unknown Error',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
       email,
       token
     });
@@ -108,14 +115,14 @@ export async function getToken(email, token) {
 }
 
 // Elimina el token para un email
-export async function deleteToken(email) {
+export async function deleteToken(email: string): Promise<void> {
   try {
     console.log("=== Iniciando eliminación de token ===");
     console.log("Conectando a MongoDB para eliminar token...");
-    const client = await clientPromise;
+    const client: MongoClient = await clientPromise;
     console.log("Conexión establecida, accediendo a la base de datos:", DB_NAME);
     const db = client.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = db.collection<TokenEntry>(COLLECTION_NAME);
     
     const result = await collection.deleteOne({ email });
     console.log("Resultado de eliminación:", {
@@ -132,10 +139,10 @@ export async function deleteToken(email) {
     });
   } catch (error) {
     console.error("Error detallado al eliminar el token:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: error instanceof Error ? error.name : 'Unknown Error',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
       email
     });
     throw error;
