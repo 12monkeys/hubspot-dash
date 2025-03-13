@@ -1,6 +1,5 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export default withAuth(
   function middleware(req) {
@@ -11,8 +10,7 @@ export default withAuth(
     }
 
     // Verificar cookie de acceso
-    const cookieStore = cookies();
-    const accessVerified = cookieStore.get("accessVerified");
+    const accessVerified = req.cookies.get("accessVerified");
     if (!accessVerified || accessVerified.value !== "true") {
       // Si no tiene la cookie pero sí tiene token, permitir acceso
       if (token) {

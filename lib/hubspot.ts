@@ -71,9 +71,9 @@ export class HubSpotClient {
 }
 
 export function createHubSpotClient() {
-  const apiKey = process.env.HUBSPOT_API_KEY || '';
+  const apiKey = process.env.HUBSPOT_ACCESS_TOKEN || '';
   if (!apiKey) {
-    console.warn('ADVERTENCIA: HUBSPOT_API_KEY no está configurada en las variables de entorno');
+    console.warn('ADVERTENCIA: HUBSPOT_ACCESS_TOKEN no está configurada en las variables de entorno');
   }
   
   return new HubSpotClient(apiKey);
