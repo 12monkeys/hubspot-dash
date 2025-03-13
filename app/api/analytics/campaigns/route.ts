@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import HubSpotService from "@/services/hubspotService";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { analyzeCampaignEffectiveness } from "@/lib/analytics";
 
 export async function GET(request: Request) {
   // Verificar autenticación
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   
   try {
     const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
-    const campaignAnalysis = await hubspotService.analyzeCampaignEffectiveness();
+    const campaignAnalysis = await analyzeCampaignEffectiveness(hubspotService);
     
     return NextResponse.json({ data: campaignAnalysis });
   } catch (error) {
