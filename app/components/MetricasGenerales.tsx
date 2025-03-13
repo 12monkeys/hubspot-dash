@@ -1,4 +1,4 @@
-import { Card, Metric, Text, Flex, Grid, Title, BarChart } from '@tremor/react';
+import { Card, Metric, Text, Flex, Grid } from '@tremor/react';
 import { DashboardMetrics } from '../types/hubspot';
 
 interface MetricasGeneralesProps {

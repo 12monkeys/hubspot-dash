@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import HubSpotService from '../../../services/hubspotService';
+import HubSpotService from '@/services/hubspotService';
 
 export const dynamic = 'force-dynamic';
 

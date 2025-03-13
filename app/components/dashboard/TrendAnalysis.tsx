@@ -5,8 +5,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, Cell
 } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
-import { Select } from "../ui/Select";
+import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/Card";
+import { Select } from "../../components/ui/Select";
 
 interface TrendData {
   date: string;
@@ -155,19 +155,19 @@ export default function TrendAnalysis() {
         <div className="flex space-x-2">
           <Select
             value={metric}
-            onChange={(e) => setMetric(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMetric(e.target.value)}
             options={metricOptions}
             className="text-sm"
           />
           <Select
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTimeframe(e.target.value)}
             options={timeframeOptions}
             className="text-sm"
           />
           <Select
             value={viewMode}
-            onChange={(e) => setViewMode(e.target.value as "line" | "area" | "bar")}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setViewMode(e.target.value as "line" | "area" | "bar")}
             options={viewModeOptions}
             className="text-sm"
           />
