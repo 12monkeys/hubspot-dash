@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Versión sin Prisma - Usando solo MongoDB directamente
 
 const nextConfig = {
   reactStrictMode: true,
