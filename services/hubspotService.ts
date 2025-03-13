@@ -111,6 +111,11 @@ interface MetricRecommendation {
   priority: 'high' | 'medium' | 'low';
 }
 
+interface TimeSeriesData {
+  date: string;
+  value: number;
+}
+
 class HubSpotService {
   private client: Client;
   private contactSummaryCache: ContactSummary | null = null;
@@ -522,6 +527,90 @@ class HubSpotService {
       return schemas;
     } catch (error) {
       console.error('Error fetching schemas:', error);
+      return [];
+    }
+  }
+
+  async getTimeSeriesData(objectType: string, metric: string, timeframe: string): Promise<TimeSeriesData[]> {
+    try {
+      // Calculate date range based on timeframe
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (timeframe) {
+        case '7d':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(endDate.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(endDate.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(endDate.getDate() - 30); // Default to 30 days
+      }
+
+      // Format dates for API
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // Build the API request based on object type and metric
+      let response;
+      if (objectType === 'contacts') {
+        const searchRequest: PublicObjectSearchRequest = {
+          filterGroups: [{
+            filters: [{
+              propertyName: 'createdate',
+              operator: FilterOperatorEnum.Between,
+              value: `${startDateStr},${endDateStr}`
+            }]
+          }],
+          properties: [metric],
+          sorts: ['createdate'],
+          limit: 100
+        };
+
+        response = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
+      } else if (objectType === 'donations') {
+        const searchRequest: PublicObjectSearchRequest = {
+          filterGroups: [{
+            filters: [{
+              propertyName: 'createdate',
+              operator: FilterOperatorEnum.Between,
+              value: `${startDateStr},${endDateStr}`
+            }]
+          }],
+          properties: [metric],
+          sorts: ['createdate'],
+          limit: 100
+        };
+
+        response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
+      } else {
+        throw new Error(`Unsupported object type: ${objectType}`);
+      }
+
+      // Transform the response into TimeSeriesData format
+      const timeSeriesData: TimeSeriesData[] = response.results.map(result => ({
+        date: result.properties.createdate || new Date().toISOString().split('T')[0],
+        value: Number(result.properties[metric]) || 0
+      }));
+
+      // Group by date and aggregate values
+      const groupedData = timeSeriesData.reduce((acc: Record<string, number>, curr) => {
+        const date = curr.date.split('T')[0];
+        acc[date] = (acc[date] || 0) + curr.value;
+        return acc;
+      }, {});
+
+      // Convert back to array format
+      return Object.entries(groupedData).map(([date, value]) => ({
+        date,
+        value
+      }));
+    } catch (error) {
+      console.error('Error fetching time series data:', error);
       return [];
     }
   }
