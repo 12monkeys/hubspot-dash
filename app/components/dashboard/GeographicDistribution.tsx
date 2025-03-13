@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
+import { Select } from "../ui/Select";
 
 // Define the interface for a region distribution
 type RegionDistribution = {

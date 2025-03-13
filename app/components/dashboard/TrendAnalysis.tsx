@@ -5,8 +5,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, Cell
 } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
+import { Select } from "../ui/Select";
 
 interface TrendData {
   date: string;

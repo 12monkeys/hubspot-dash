@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 
 type Recommendation = {
   id: string;

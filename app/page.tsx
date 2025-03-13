@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import LoginForm from '@/components/auth/LoginForm';
-import MetricasGenerales from '@/components/MetricasGenerales';
-import DistribucionRegional from '@/components/DistribucionRegional';
-import MetricasCuotas from '@/components/MetricasCuotas';
-import { DashboardMetrics } from '@/types/hubspot';
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import LoginForm from './components/auth/LoginForm';
+import MetricasGenerales from './components/MetricasGenerales';
+import DistribucionRegional from './components/DistribucionRegional';
+import MetricasCuotas from './components/MetricasCuotas';
+import { DashboardMetrics } from './types/hubspot';
 
 export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);

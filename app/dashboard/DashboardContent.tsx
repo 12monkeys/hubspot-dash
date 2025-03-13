@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import KPIOverview from "@/components/dashboard/KPIOverview";
-import TrendAnalysis from "@/components/dashboard/TrendAnalysis";
-import CampaignAnalysis from "@/components/dashboard/CampaignAnalysis";
-import GeographicDistribution from "@/components/dashboard/GeographicDistribution";
-import ConversionRecommendations from "@/components/dashboard/ConversionRecommendations";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import KPIOverview from "../components/dashboard/KPIOverview";
+import TrendAnalysis from "../components/dashboard/TrendAnalysis";
+import CampaignAnalysis from "../components/dashboard/CampaignAnalysis";
+import GeographicDistribution from "../components/dashboard/GeographicDistribution";
+import ConversionRecommendations from "../components/dashboard/ConversionRecommendations";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/Tabs";
 
 export default function DashboardContent() {
   const { data: session, status } = useSession();

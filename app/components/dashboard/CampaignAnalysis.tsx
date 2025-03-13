@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   Cell, PieChart, Pie
 } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 
 type Campaign = {
   name: string;
