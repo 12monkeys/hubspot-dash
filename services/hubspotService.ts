@@ -103,6 +103,14 @@ interface WorkflowConversionsResponse {
   conversions: WorkflowConversion[];
 }
 
+interface MetricRecommendation {
+  metric: string;
+  currentValue: number;
+  targetValue: number;
+  recommendation: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
 class HubSpotService {
   private client: Client;
   private contactSummaryCache: ContactSummary | null = null;
@@ -410,6 +418,83 @@ class HubSpotService {
     } catch (error) {
       console.error('Error getting dashboard metrics:', error);
       throw error;
+    }
+  }
+
+  async analyzeAvailableMetrics(): Promise<MetricRecommendation[]> {
+    try {
+      // Get current metrics
+      const metrics = await this.getDashboardMetrics();
+      
+      const recommendations: MetricRecommendation[] = [];
+
+      // Analyze conversion rate
+      if (metrics.tasaConversion < 30) {
+        recommendations.push({
+          metric: 'Tasa de Conversión',
+          currentValue: metrics.tasaConversion,
+          targetValue: 30,
+          recommendation: 'Implementar estrategias de engagement para aumentar la conversión de simpatizantes a afiliados',
+          priority: 'high'
+        });
+      }
+
+      // Analyze monthly growth
+      if (metrics.crecimientoMensual < 5) {
+        recommendations.push({
+          metric: 'Crecimiento Mensual',
+          currentValue: metrics.crecimientoMensual,
+          targetValue: 5,
+          recommendation: 'Fortalecer las campañas de adquisición y mejorar la estrategia de captación de nuevos contactos',
+          priority: 'high'
+        });
+      }
+
+      // Analyze active campaigns
+      if (metrics.campañasActivas < 3) {
+        recommendations.push({
+          metric: 'Campañas Activas',
+          currentValue: metrics.campañasActivas,
+          targetValue: 3,
+          recommendation: 'Aumentar el número de campañas activas para mejorar el engagement y la captación',
+          priority: 'medium'
+        });
+      }
+
+      // Analyze average donations
+      if (metrics.donacionesPromedio < 500) {
+        recommendations.push({
+          metric: 'Donación Promedio',
+          currentValue: metrics.donacionesPromedio,
+          targetValue: 500,
+          recommendation: 'Implementar estrategias de upselling y mejorar la comunicación del valor de la afiliación',
+          priority: 'medium'
+        });
+      }
+
+      // Analyze regional distribution
+      const regionesDesbalanceadas = metrics.distribucionRegional
+        .filter(r => r.count < metrics.totalAfiliados * 0.1)
+        .map(r => r.region);
+
+      if (regionesDesbalanceadas.length > 0) {
+        recommendations.push({
+          metric: 'Distribución Regional',
+          currentValue: regionesDesbalanceadas.length,
+          targetValue: 0,
+          recommendation: `Fortalecer la presencia en las regiones: ${regionesDesbalanceadas.join(', ')}`,
+          priority: 'low'
+        });
+      }
+
+      // Sort recommendations by priority
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+      return recommendations;
+    } catch (error) {
+      console.error('Error analyzing metrics:', error);
+      return [];
     }
   }
 }
