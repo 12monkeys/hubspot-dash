@@ -1,6 +1,15 @@
 import { Client } from '@hubspot/api-client';
 import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum, SimplePublicObjectWithAssociations } from '@hubspot/api-client/lib/codegen/crm/contacts';
-import { Contact, Donation, Campaign } from '../types/hubspot';
+import { Contact, Campaign } from '../types/hubspot';
+
+interface Donation {
+  id: string;
+  properties: {
+    amount: number;
+    date: string;
+    contact_id?: string;
+  }
+}
 
 interface ObjectSchema {
   name: string;
@@ -282,14 +291,12 @@ class HubSpotService {
       const response = await this.client.apiRequest({
         method: 'GET',
         path: `/automation/v3/workflows/${workflowId}/goals`,
-        qs: {
-          limit: 100
-        }
-      }) as WorkflowGoalsResponse;
+      });
       
-      return response.goals || [];
+      const data = await response.json() as WorkflowGoalsResponse;
+      return data.goals || [];
     } catch (error) {
-      console.error('Error al obtener historial de ejecución del workflow:', error);
+      console.error('Error fetching workflow execution history:', error);
       return [];
     }
   }
@@ -299,15 +306,15 @@ class HubSpotService {
       const response = await this.client.apiRequest({
         method: 'GET',
         path: `/automation/v3/workflows/${workflowId}/conversions`,
-        qs: {
-          limit: 100
-        }
-      }) as WorkflowConversionsResponse;
+      });
       
-      return response.conversions || [];
+      const data = await response.json() as WorkflowConversionsResponse;
+      return data.conversions || [];
     } catch (error) {
-      console.error('Error al obtener conversiones del workflow:', error);
+      console.error('Error fetching workflow conversions:', error);
       return [];
     }
   }
-} 
+}
+
+export default HubSpotService; 
