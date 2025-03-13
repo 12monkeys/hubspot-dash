@@ -947,4 +947,6 @@ class HubSpotService {
       return [];
     }
   }
-} 
+}
+
+export default HubSpotService; 
