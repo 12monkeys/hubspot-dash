@@ -4,8 +4,15 @@ import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
+// Define the interface for a region distribution
+type RegionDistribution = {
+  region: string;
+  count: number;
+  percentage: number;
+};
+
 export default function GeographicDistribution() {
-  const [distribution, setDistribution] = useState([]);
+  const [distribution, setDistribution] = useState<RegionDistribution[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {

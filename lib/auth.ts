@@ -1,6 +1,7 @@
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { User } from "next-auth";
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -25,7 +26,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user }: { user: User }) {
       const email = user.email;
       return email?.endsWith("@sneakerlost.com") || false;
     },

@@ -7,10 +7,15 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 
+interface TrendData {
+  date: string;
+  value: number;
+}
+
 export default function TrendAnalysis() {
   const [timeframe, setTimeframe] = useState("30d");
   const [metric, setMetric] = useState("new_contacts");
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -82,12 +87,17 @@ export default function TrendAnalysis() {
               />
               <YAxis />
               <Tooltip 
-                formatter={(value) => [
-                  metric === 'average_quota' ? `${value.toFixed(2)} €` : 
-                  metric === 'conversion_rate' ? `${(value * 100).toFixed(1)}%` : 
-                  value.toString(),
-                  metricOptions.find(o => o.value === metric)?.label
-                ]}
+                formatter={(value) => {
+                  if (typeof value === 'number') {
+                    return [
+                      metric === 'average_quota' ? `${value.toFixed(2)} €` : 
+                      metric === 'conversion_rate' ? `${(value * 100).toFixed(1)}%` : 
+                      value.toString(),
+                      metricOptions.find(o => o.value === metric)?.label
+                    ];
+                  }
+                  return [value.toString(), metricOptions.find(o => o.value === metric)?.label];
+                }}
                 labelFormatter={date => new Date(date).toLocaleDateString('es-ES')}
               />
               <Legend />

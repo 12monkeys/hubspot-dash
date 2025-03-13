@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { HubSpotService } from "@/services/hubspotService";
+import HubSpotService from "@/services/hubspotService";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -11,10 +11,10 @@ export async function GET(request: Request) {
   }
   
   try {
-    const hubspotService = new HubSpotService();
+    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
     
     // Obtener datos del dashboard actual
-    const dashboardData = await hubspotService.getDashboardData();
+    const dashboardData = await hubspotService.getDashboardMetrics();
     
     // Obtener datos de campañas
     const campaigns = await hubspotService.getCampaigns();
@@ -25,10 +25,10 @@ export async function GET(request: Request) {
     // Calcular cambios (simulados por ahora)  
     // En una implementación real, estos datos vendrían de comparar con períodos anteriores
     const data = {
-      totalAffiliates: dashboardData.totalAffiliates,
-      totalSympathizers: dashboardData.totalSympathizers,
-      conversionRate: dashboardData.conversionRate * 100,
-      monthlyGrowth: dashboardData.recentContactsRate * 100,
+      totalAffiliates: dashboardData.totalAfiliados,
+      totalSympathizers: dashboardData.totalSimpatizantes,
+      conversionRate: dashboardData.tasaConversion,
+      monthlyGrowth: dashboardData.crecimientoMensual,
       averageQuota: dashboardData.cuotaPromedio,
       estimatedMonthlyIncome: dashboardData.ingresoCuotasMensual,
       activeCampaigns: activeCampaigns,

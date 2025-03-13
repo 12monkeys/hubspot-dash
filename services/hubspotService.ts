@@ -45,6 +45,34 @@ interface ContactSummary {
   recientes: number;
 }
 
+interface LocalFilter {
+  filterGroups: {
+    filters: {
+      propertyName: string;
+      operator: string;
+      value: string;
+    }[];
+  }[];
+}
+
+interface ApiResponse<T> {
+  results: T[];
+  // Add other properties if needed
+}
+
+interface Workflow {
+  id: string;
+  properties: {
+    hs_name: string;
+    hs_campaign_status: string;
+    hs_start_date: string | null;
+    hs_end_date: string | null;
+    hs_audience: number;
+    hs_goal: number;
+    hs_budget_items_sum_amount: number;
+  }
+}
+
 class HubSpotService {
   private client: Client;
   private contactSummaryCache: ContactSummary | null = null;
@@ -425,24 +453,24 @@ class HubSpotService {
       const data = await response.json();
       
       // Procesamos la respuesta según el tipo de objeto
-      let properties;
+      let properties: { name: string; label: string; type: string; fieldType: string; description?: string; options?: { label: string; value: string; }[] }[] = [];
       if (Array.isArray(data)) {
-        // Para contacts y deals
+        // For contacts and deals
         properties = data.map((prop: any) => ({
           name: prop.name,
-          label: prop.label,
-          type: prop.type,
-          fieldType: prop.fieldType,
+          label: prop.label || '',
+          type: prop.type || '',
+          fieldType: prop.fieldType || '',
           description: prop.description,
           options: prop.options
         }));
       } else if (data.properties) {
-        // Para objetos personalizados
+        // For custom objects
         properties = data.properties.map((prop: any) => ({
           name: prop.name,
-          label: prop.label,
-          type: prop.type,
-          fieldType: prop.fieldType,
+          label: prop.label || '',
+          type: prop.type || '',
+          fieldType: prop.fieldType || '',
           description: prop.description,
           options: prop.options
         }));
@@ -548,7 +576,7 @@ class HubSpotService {
   async getTimeSeriesData(objectType: string, metric: string, timeframe: string) {
     try {
       let endpoint = '';
-      let properties = [];
+      let properties: string[] = [];
       
       switch (objectType) {
         case 'contacts':
@@ -585,7 +613,7 @@ class HubSpotService {
       const startDateISO = startDate.toISOString();
       
       // Construir filtros según métrica
-      let filter = {};
+      let filter: LocalFilter = { filterGroups: [] };
       switch (metric) {
         case 'new_contacts':
           filter = {
@@ -630,8 +658,10 @@ class HubSpotService {
         }
       });
       
-      // Procesar datos para análisis temporal
-      const timeSeriesData = this.processTimeSeriesData(response.results, metric);
+      const data: ApiResponse<any> = await response.json(); // Ensure response is parsed as JSON
+      
+      // Process data.results
+      const timeSeriesData = this.processTimeSeriesData(data.results, metric);
       
       return timeSeriesData;
     } catch (error) {
@@ -665,7 +695,7 @@ class HubSpotService {
       // Cálculos específicos según la métrica
       switch (metric) {
         case 'average_quota':
-          const totalQuota = groupedByDay[day].reduce((sum, item) => {
+          const totalQuota = groupedByDay[day].reduce((sum: number, item: { properties: { apl_cuota_afiliado: string } }) => {
             return sum + (parseFloat(item.properties.apl_cuota_afiliado) || 0);
           }, 0);
           value = totalQuota / count;
@@ -694,12 +724,14 @@ class HubSpotService {
         }
       });
       
-      if (!response.results || response.results.length === 0) {
+      const data = await response.json();
+      
+      if (!data.results || data.results.length === 0) {
         return [];
       }
-      
+
       // Obtenemos los detalles de cada contacto
-      const contactIds = response.results.map(result => result.id);
+      const contactIds = data.results.map((result: any) => result.id);
       const contactDetails = await this.getContactsByIds(contactIds);
       
       return contactDetails;
@@ -716,14 +748,14 @@ class HubSpotService {
       
       // Dividir en chunks de 100 para respetar límites de API
       const chunks = this.chunkArray(contactIds, 100);
-      let allContacts = [];
+      let allContacts: any[] = [];
       
       for (const chunk of chunks) {
         const response = await this.client.apiRequest({
           method: 'POST',
           path: '/crm/v3/objects/contacts/batch/read',
           body: {
-            inputs: chunk.map(id => ({ id })),
+            inputs: chunk.map((id: string) => ({ id })),
             properties: [
               'firstname', 
               'lastname', 
@@ -738,8 +770,10 @@ class HubSpotService {
           }
         });
         
-        if (response.results) {
-          allContacts = [...allContacts, ...response.results];
+        const data = await response.json();
+        
+        if (data.results) {
+          allContacts = [...allContacts, ...data.results];
         }
       }
       
@@ -751,7 +785,7 @@ class HubSpotService {
   }
 
   // Dividir array en chunks
-  private chunkArray(array, chunkSize) {
+  private chunkArray(array: any[], chunkSize: number) {
     const chunks = [];
     for (let i = 0; i < array.length; i += chunkSize) {
       chunks.push(array.slice(i, i + chunkSize));
@@ -760,7 +794,7 @@ class HubSpotService {
   }
 
   // Obtener workflows y su efectividad
-  async getWorkflows() {
+  async getWorkflows(): Promise<any[]> {
     try {
       const response = await this.client.apiRequest({
         method: 'GET',
@@ -769,8 +803,10 @@ class HubSpotService {
           limit: 100
         }
       });
-      
-      return response.workflows || [];
+
+      const data: { workflows: any[] } = await response.json(); // Ensure response is parsed as JSON
+
+      return data.workflows || [];
     } catch (error) {
       console.error(`Error al obtener workflows: ${error}`);
       return [];
@@ -789,11 +825,11 @@ class HubSpotService {
         const contacts = await this.getContactsByCampaign(campaign.id);
         
         // Segmentamos por tipo
-        const affiliates = contacts.filter(c => 
+        const affiliates = contacts.filter((c: any) => 
           c.properties.relacion_con_vox === 'Afiliado'
         );
         
-        const sympathizers = contacts.filter(c => 
+        const sympathizers = contacts.filter((c: any) => 
           c.properties.relacion_con_vox === 'Simpatizante'
         );
         
@@ -826,8 +862,8 @@ class HubSpotService {
   }
 
   // Analizar distribución regional
-  private analyzeRegionDistribution(contacts) {
-    const regionCounts = contacts.reduce((acc, contact) => {
+  private analyzeRegionDistribution(contacts: any[]) {
+    const regionCounts = contacts.reduce((acc: Record<string, number>, contact: any) => {
       const region = contact.properties.comunidad_autonoma || 'Desconocida';
       
       if (!acc[region]) {
@@ -847,7 +883,7 @@ class HubSpotService {
   }
 
   // Analizar cuotas
-  private analyzeQuotas(affiliates) {
+  private analyzeQuotas(affiliates: any[]) {
     if (!affiliates || affiliates.length === 0) {
       return {
         averageQuota: 0,
@@ -859,9 +895,9 @@ class HubSpotService {
     // Calcular cuota promedio
     let totalQuota = 0;
     let validQuotaCount = 0;
-    const quotaValues = {};
+    const quotaValues: Record<string, number> = {};
     
-    affiliates.forEach(affiliate => {
+    affiliates.forEach((affiliate: any) => {
       const quota = parseFloat(affiliate.properties.apl_cuota_afiliado);
       if (!isNaN(quota)) {
         totalQuota += quota;
@@ -890,6 +926,24 @@ class HubSpotService {
       totalRevenue: totalQuota,
       quotaDistribution
     };
+  }
+
+  async getCampaigns(): Promise<any[]> {
+    try {
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: '/marketing/v3/campaigns',
+        qs: {
+          properties: ['hs_name', 'hs_campaign_status', 'hs_start_date', 'hs_end_date', 
+                       'hs_audience', 'hs_goal', 'hs_budget_items_sum_amount']
+        }
+      });
+      
+      return response.results;
+    } catch (error) {
+      console.error('Error al obtener campañas:', error);
+      return [];
+    }
   }
 }
 

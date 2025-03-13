@@ -3,8 +3,32 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 
+type RegionDistribution = {
+  region: string;
+  count: number;
+  percentage: number;
+};
+
+type Metrics = {
+  totalAffiliates: number;
+  affiliatesChange: number;
+  conversionRate: number;
+  conversionRateChange: number;
+  totalSympathizers: number;
+  sympathizersChange: number;
+  monthlyGrowth: number;
+  monthlyGrowthChange: number;
+  averageQuota: number;
+  averageQuotaChange: number;
+  estimatedMonthlyIncome: number;
+  estimatedIncomeChange: number;
+  activeCampaigns: number;
+  activeCampaignsChange: number;
+  annualProjection: number;
+};
+
 export default function KPIOverview() {
-  const [metrics, setMetrics] = useState(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -121,4 +145,4 @@ export default function KPIOverview() {
       ))}
     </div>
   );
-} 
+}

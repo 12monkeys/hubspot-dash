@@ -7,10 +7,27 @@ import {
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
+type Campaign = {
+  name: string;
+  conversionRate: number;
+  affiliatesCount: number;
+  sympathizersCount: number;
+  regionDistribution: { region: string; count: number; percentage: number; }[];
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  totalContacts: number;
+  quotaAnalysis?: {
+    averageQuota: number;
+    totalRevenue: number;
+    quotaDistribution: { quota: number; count: number; percentage: number }[];
+  } | null;
+}
+
 export default function CampaignAnalysis() {
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   
   useEffect(() => {
     async function fetchCampaigns() {
@@ -36,6 +53,22 @@ export default function CampaignAnalysis() {
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
   
+  const data = campaigns.map(campaign => ({
+    name: campaign.name,
+    conversionRate: campaign.conversionRate,
+    affiliatesCount: campaign.affiliatesCount,
+    sympathizersCount: campaign.sympathizersCount,
+    regionDistribution: campaign.regionDistribution,
+    quotaAnalysis: campaign.quotaAnalysis
+  }));
+  
+  const kpiItems = campaigns.map((campaign, index) => ({
+    title: campaign.name,
+    value: campaign.totalContacts,
+    change: null,
+    icon: <div className="text-2xl">{index + 1}</div>
+  }));
+  
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -51,7 +84,7 @@ export default function CampaignAnalysis() {
             ) : campaigns.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart
-                  data={campaigns}
+                  data={data}
                   margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -63,12 +96,16 @@ export default function CampaignAnalysis() {
                   />
                   <YAxis />
                   <Tooltip 
-                    formatter={(value, name) => [
-                      name === 'conversionRate' ? `${(value * 100).toFixed(1)}%` : value,
-                      name === 'conversionRate' ? 'Tasa de conversión' : 
-                      name === 'affiliatesCount' ? 'Afiliados' : 
-                      name === 'sympathizersCount' ? 'Simpatizantes' : name
-                    ]}
+                    formatter={(value, name) => {
+                      const numericValue = typeof value === 'number' ? value : parseFloat(value as string);
+                      let formattedValue = name === 'conversionRate' ? `${(numericValue * 100).toFixed(1)}%` : numericValue.toLocaleString();
+
+                      const label = name === 'conversionRate' ? 'Tasa de conversión' : 
+                                    name === 'affiliatesCount' ? 'Afiliados' : 
+                                    name === 'sympathizersCount' ? 'Simpatizantes' : name;
+
+                      return [formattedValue, label];
+                    }}
                   />
                   <Legend 
                     formatter={(value) => 
@@ -261,6 +298,27 @@ export default function CampaignAnalysis() {
           </Card>
         </div>
       )}
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpiItems.map((item, index) => (
+          <Card key={index} className="shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{item.title}</p>
+                  <p className="mt-1 text-2xl font-semibold">{item.value}</p>
+                  {item.change !== null && (
+                    <p className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+                <div className="text-2xl">{item.icon}</div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 } 
