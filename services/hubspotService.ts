@@ -116,6 +116,22 @@ interface TimeSeriesData {
   value: number;
 }
 
+// Helper function to create a valid PublicObjectSearchRequest
+function createSearchRequest(params: {
+  filterGroups?: FilterGroup[];
+  limit?: number;
+  properties?: string[];
+  sorts?: string[];
+}): PublicObjectSearchRequest {
+  return {
+    filterGroups: params.filterGroups || [],
+    limit: params.limit || 100,
+    properties: params.properties || [],
+    after: '0',
+    sorts: params.sorts || []
+  };
+}
+
 class HubSpotService {
   private client: Client;
   private contactSummaryCache: ContactSummary | null = null;
@@ -144,45 +160,41 @@ class HubSpotService {
     
     try {
       // Obtenemos el total de contactos
-      const totalContactsRequest: PublicObjectSearchRequest = {
-        filterGroups: [],
-        limit: 1,
-        properties: []
-      };
+      const totalContactsRequest = createSearchRequest({
+        limit: 1
+      });
       
       const totalResponse = await this.client.crm.contacts.searchApi.doSearch(totalContactsRequest);
       const totalContacts = totalResponse.total;
       
       // Obtenemos el total de afiliados
-      const afiliadosRequest: PublicObjectSearchRequest = {
+      const affiliatesRequest = createSearchRequest({
         filterGroups: [{
           filters: [{
-            propertyName: 'relacion_con_vox',
+            propertyName: 'contactType',
             operator: FilterOperatorEnum.Eq,
             value: 'Afiliado'
           }]
         }],
-        limit: 1,
-        properties: []
-      };
+        limit: 1
+      });
       
-      const afiliadosResponse = await this.client.crm.contacts.searchApi.doSearch(afiliadosRequest);
-      const totalAfiliados = afiliadosResponse.total;
+      const affiliatesResponse = await this.client.crm.contacts.searchApi.doSearch(affiliatesRequest);
+      const totalAfiliados = affiliatesResponse.total;
       
       // Obtenemos el total de simpatizantes
-      const simpatizantesRequest: PublicObjectSearchRequest = {
+      const sympathizersRequest = createSearchRequest({
         filterGroups: [{
           filters: [{
-            propertyName: 'relacion_con_vox',
+            propertyName: 'contactType',
             operator: FilterOperatorEnum.Eq,
             value: 'Simpatizante'
           }]
         }],
-        limit: 1,
-        properties: []
-      };
+        limit: 1
+      });
       
-      const simpatizantesResponse = await this.client.crm.contacts.searchApi.doSearch(simpatizantesRequest);
+      const simpatizantesResponse = await this.client.crm.contacts.searchApi.doSearch(sympathizersRequest);
       const totalSimpatizantes = simpatizantesResponse.total;
       
       // Obtenemos el total de contactos recientes (último mes)
@@ -190,7 +202,7 @@ class HubSpotService {
       fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
       const fechaUnMesAtrasStr = fechaUnMesAtras.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      const contactosRecientesRequest: PublicObjectSearchRequest = {
+      const newContactsRequest = createSearchRequest({
         filterGroups: [{
           filters: [{
             propertyName: 'createdate',
@@ -198,28 +210,25 @@ class HubSpotService {
             value: fechaUnMesAtrasStr
           }]
         }],
-        limit: 1,
-        properties: []
-      };
+        limit: 1
+      });
       
-      const contactosRecientesResponse = await this.client.crm.contacts.searchApi.doSearch(contactosRecientesRequest);
+      const contactosRecientesResponse = await this.client.crm.contacts.searchApi.doSearch(newContactsRequest);
       const totalContactosRecientes = contactosRecientesResponse.total;
       
       // Para la distribución regional, necesitamos hacer una consulta separada para cada región
-      // Para simplificar, obtendremos una muestra de contactos para calcular la distribución aproximada
-      const regionesRequest: PublicObjectSearchRequest = {
-        filterGroups: [],
+      const regionRequest = createSearchRequest({
         limit: 100,
-        properties: ['provincia'],
-        sorts: ['createdate']
-      };
+        properties: ['region'],
+        sorts: ['region']
+      });
       
-      const regionesResponse = await this.client.crm.contacts.searchApi.doSearch(regionesRequest);
+      const regionResponse = await this.client.crm.contacts.searchApi.doSearch(regionRequest);
       const regiones: Record<string, number> = {};
       
-      // Calculamos la distribución con la muestra, luego la extrapolamos al total
-      regionesResponse.results.forEach(contact => {
-        const region = contact.properties.provincia || 'No especificada';
+      // Calculamos la distribución con la muestra
+      regionResponse.results.forEach(contact => {
+        const region = contact.properties.region || 'No especificada';
         regiones[region] = (regiones[region] || 0) + 1;
       });
       
@@ -247,11 +256,9 @@ class HubSpotService {
       console.log('Obteniendo resumen de donaciones...');
       
       // Obtener el total de donaciones primero
-      const totalDonationsRequest: PublicObjectSearchRequest = {
-        filterGroups: [],
-        limit: 1,
-        properties: []
-      };
+      const totalDonationsRequest = createSearchRequest({
+        limit: 1
+      });
       
       let totalDonations = 0;
       
@@ -272,12 +279,11 @@ class HubSpotService {
         return [];
       }
       
-      const searchRequest: PublicObjectSearchRequest = {
+      const searchRequest = createSearchRequest({
         properties: ['importe', 'createdate'],
         limit: 100,
-        filterGroups: [],
         sorts: ['createdate']
-      };
+      });
 
       const response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
       
@@ -558,7 +564,7 @@ class HubSpotService {
       // Build the API request based on object type and metric
       let response;
       if (objectType === 'contacts') {
-        const searchRequest: PublicObjectSearchRequest = {
+        const searchRequest = createSearchRequest({
           filterGroups: [{
             filters: [{
               propertyName: 'createdate',
@@ -569,11 +575,11 @@ class HubSpotService {
           properties: [metric],
           sorts: ['createdate'],
           limit: 100
-        };
+        });
 
         response = await this.client.crm.contacts.searchApi.doSearch(searchRequest);
       } else if (objectType === 'donations') {
-        const searchRequest: PublicObjectSearchRequest = {
+        const searchRequest = createSearchRequest({
           filterGroups: [{
             filters: [{
               propertyName: 'createdate',
@@ -584,7 +590,7 @@ class HubSpotService {
           properties: [metric],
           sorts: ['createdate'],
           limit: 100
-        };
+        });
 
         response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
       } else {
