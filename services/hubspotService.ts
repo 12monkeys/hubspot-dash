@@ -614,6 +614,31 @@ class HubSpotService {
       return [];
     }
   }
+
+  async getContactsByCampaign(campaignId: string): Promise<Contact[]> {
+    try {
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: `/crm/v3/objects/campaigns/${campaignId}/associations/contacts`,
+      });
+
+      const data = await response.json();
+      const contactIds = data.results.map((result: any) => result.id);
+
+      // Get contact details for each contact ID
+      const contacts = await Promise.all(
+        contactIds.map(async (contactId: string) => {
+          const contactResponse = await this.client.crm.contacts.basicApi.getById(contactId);
+          return contactResponse;
+        })
+      );
+
+      return contacts;
+    } catch (error) {
+      console.error('Error fetching contacts by campaign:', error);
+      return [];
+    }
+  }
 }
 
 export default HubSpotService; 
