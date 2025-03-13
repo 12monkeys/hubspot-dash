@@ -97,3 +97,128 @@ Para que el dashboard funcione correctamente, asegúrese de tener configurados e
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
+
+# HubSpot Dashboard
+
+Dashboard de inteligencia de negocio para visualizar y analizar datos de HubSpot.
+
+## Configuración del Entorno
+
+### Variables de Entorno
+
+El proyecto utiliza variables de entorno para la configuración. Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
+
+```
+# Auth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=tu_clave_secreta_larga_y_aleatoria
+
+# Email
+EMAIL_SERVER=smtp://usuario:contraseña@smtp.ejemplo.com:587
+EMAIL_FROM=tu@email.com
+EMAIL_USER=usuario
+EMAIL_PASSWORD=contraseña
+EMAIL_HOST=smtp.ejemplo.com
+EMAIL_PORT=587
+
+# Prisma
+DATABASE_URL="file:./dev.db"
+
+# HubSpot
+HUBSPOT_ACCESS_TOKEN=tu_token_de_hubspot
+```
+
+### Configuración de Correo Electrónico
+
+Para que el sistema de autenticación funcione correctamente, necesitas configurar un servidor SMTP para el envío de correos electrónicos. Tienes varias opciones:
+
+#### 1. Gmail
+
+Para usar Gmail, necesitas una "contraseña de aplicación" si tienes verificación en dos pasos habilitada:
+
+1. Ve a [Contraseñas de aplicación](https://myaccount.google.com/apppasswords)
+2. Selecciona "Otra" como aplicación y dale un nombre (por ejemplo, "HubSpot Dashboard")
+3. Usa la contraseña generada en tu configuración:
+
+```
+EMAIL_SERVER=smtp://tu_correo@gmail.com:tu_contraseña_de_aplicacion@smtp.gmail.com:587
+EMAIL_FROM=tu_correo@gmail.com
+EMAIL_USER=tu_correo@gmail.com
+EMAIL_PASSWORD=tu_contraseña_de_aplicacion
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+```
+
+#### 2. Servicios de Correo Transaccional
+
+Para entornos de producción, se recomienda usar servicios como:
+
+- **SendGrid**:
+  ```
+  EMAIL_SERVER=smtp://apikey:TU_API_KEY@smtp.sendgrid.net:587
+  EMAIL_FROM=tu_correo_verificado@dominio.com
+  EMAIL_USER=apikey
+  EMAIL_PASSWORD=TU_API_KEY
+  EMAIL_HOST=smtp.sendgrid.net
+  EMAIL_PORT=587
+  ```
+
+- **Mailgun**:
+  ```
+  EMAIL_SERVER=smtp://postmaster@tu_dominio.mailgun.org:TU_PASSWORD@smtp.mailgun.org:587
+  EMAIL_FROM=tu_correo@dominio.com
+  EMAIL_USER=postmaster@tu_dominio.mailgun.org
+  EMAIL_PASSWORD=TU_PASSWORD
+  EMAIL_HOST=smtp.mailgun.org
+  EMAIL_PORT=587
+  ```
+
+- **Resend** (recomendado para Vercel):
+  ```
+  EMAIL_SERVER=smtp://resend:re_123456789@smtp.resend.com:587
+  EMAIL_FROM=tu_correo@dominio.com
+  EMAIL_USER=resend
+  EMAIL_PASSWORD=re_123456789
+  EMAIL_HOST=smtp.resend.com
+  EMAIL_PORT=587
+  ```
+
+#### 3. Para Desarrollo Local
+
+Para desarrollo local, puedes usar [Ethereal](https://ethereal.email) o [MailHog](https://github.com/mailhog/MailHog):
+
+```
+EMAIL_SERVER=smtp://user:pass@localhost:1025
+EMAIL_FROM=test@example.com
+EMAIL_USER=user
+EMAIL_PASSWORD=pass
+EMAIL_HOST=localhost
+EMAIL_PORT=1025
+```
+
+## Desarrollo
+
+```bash
+# Instalar dependencias
+npm install
+
+# Generar el cliente de Prisma
+npx prisma generate
+
+# Iniciar el servidor de desarrollo
+npm run dev
+```
+
+## Producción
+
+```bash
+# Construir la aplicación
+npm run build
+
+# Iniciar el servidor de producción
+npm start
+```
+
+## Despliegue en Vercel
+
+Este proyecto está configurado para desplegarse en Vercel. Asegúrate de configurar las variables de entorno en el panel de control de Vercel.

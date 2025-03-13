@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import { nanoid } from "nanoid";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -28,44 +28,29 @@ export async function POST(request: Request) {
     const token = nanoid();
     
     // Guardar el token en la base de datos
-    await prisma.verificationToken.create({
-      data: {
-        identifier: emailLower,
-        token,
-        expires: new Date(Date.now() + 3600000), // 1 hora
-      },
-    });
+    try {
+      await prisma.verificationToken.create({
+        data: {
+          identifier: emailLower,
+          token,
+          expires: new Date(Date.now() + 3600000), // 1 hora
+        },
+      });
+      console.log("Token guardado en la base de datos correctamente");
+    } catch (dbError) {
+      console.error("Error al guardar el token en la base de datos:", dbError);
+      return NextResponse.json({ 
+        error: "Error al procesar la solicitud. Por favor, inténtalo de nuevo más tarde.",
+        details: process.env.NODE_ENV === 'development' ? dbError : undefined
+      }, { status: 500 });
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    console.log("URL base para el enlace de confirmación:", baseUrl);
     const confirmationLink = `${baseUrl}/api/confirm-access?email=${encodeURIComponent(emailLower)}&token=${token}`;
 
-    // Configurar el transporte de correo
-    let transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    // Enviar el correo
-    await transporter.sendMail({
-      from: `"Dashboard de Inteligencia de Negocio" <${process.env.EMAIL_USER}>`,
-      to: emailLower,
-      subject: "Confirma tu acceso al Dashboard de Inteligencia de Negocio",
-      text: `
-Hola,
-
-Has solicitado acceso al Dashboard de Inteligencia de Negocio. Para confirmar tu acceso, haz clic en el siguiente enlace:
-
-${confirmationLink}
-
-Este enlace es válido por 1 hora. Después de hacer clic en el enlace, regresa a la página original y recárgala para ver el dashboard.
-
-Saludos,
-Equipo de Análisis
-      `,
-      html: `
+    // Contenido del correo
+    const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -111,16 +96,60 @@ Equipo de Análisis
   </div>
 </body>
 </html>
-      `,
-    });
+    `;
+
+    const textContent = `
+Hola,
+
+Has solicitado acceso al Dashboard de Inteligencia de Negocio. Para confirmar tu acceso, haz clic en el siguiente enlace:
+
+${confirmationLink}
+
+Este enlace es válido por 1 hora. Después de hacer clic en el enlace, regresa a la página original y recárgala para ver el dashboard.
+
+Saludos,
+Equipo de Análisis
+    `;
+
+    // Enviar el correo usando nuestra función mejorada
+    try {
+      console.log("Intentando enviar correo a:", emailLower);
+      await sendEmail({
+        to: emailLower,
+        subject: "Confirma tu acceso al Dashboard de Inteligencia de Negocio",
+        text: textContent,
+        html: htmlContent,
+      });
+      console.log("Correo enviado correctamente");
+    } catch (error: any) {
+      console.error("Error detallado al enviar el correo:", error);
+      
+      // Intentar obtener información de configuración para depuración
+      const emailConfig = {
+        server: process.env.EMAIL_SERVER ? "Configurado" : "No configurado",
+        from: process.env.EMAIL_FROM ? "Configurado" : "No configurado",
+        user: process.env.EMAIL_USER ? "Configurado" : "No configurado",
+        password: process.env.EMAIL_PASSWORD ? "Configurado" : "No configurado",
+        host: process.env.EMAIL_HOST ? "Configurado" : "No configurado",
+        port: process.env.EMAIL_PORT ? "Configurado" : "No configurado",
+      };
+      
+      console.log("Configuración de correo:", emailConfig);
+      
+      return NextResponse.json({ 
+        error: "No se pudo enviar el correo de confirmación. Por favor, inténtalo de nuevo más tarde o contacta con soporte.",
+        details: process.env.NODE_ENV === 'development' ? { message: error.message, config: emailConfig } : undefined
+      }, { status: 500 });
+    }
 
     return NextResponse.json({ 
       message: "✉️ Se ha enviado un enlace de confirmación a tu correo. Por favor, revisa tu bandeja de entrada (incluyendo la carpeta de spam) y sigue las instrucciones para acceder al dashboard." 
     });
   } catch (error) {
-    console.error("Error enviando email:", error);
+    console.error("Error general en el endpoint:", error);
     return NextResponse.json({ 
-      error: "No se pudo enviar el correo de confirmación. Por favor, inténtalo de nuevo más tarde o contacta con soporte."
+      error: "No se pudo procesar la solicitud. Por favor, inténtalo de nuevo más tarde o contacta con soporte.",
+      details: process.env.NODE_ENV === 'development' ? error : undefined
     }, { status: 500 });
   }
 } 
