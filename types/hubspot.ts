@@ -126,4 +126,17 @@ export interface DashboardMetrics {
     source: string;
     count: number;
   }>;
+}
+
+export interface Workflow {
+  id: string;
+  properties: {
+    hs_name: string;
+    hs_campaign_status: string;
+    hs_start_date: string | null;
+    hs_end_date: string | null;
+    hs_audience: number;
+    hs_goal: number;
+    hs_budget_items_sum_amount: number;
+  }
 } 

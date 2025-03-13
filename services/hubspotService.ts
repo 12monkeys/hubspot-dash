@@ -639,6 +639,21 @@ class HubSpotService {
       return [];
     }
   }
+
+  async getWorkflows(): Promise<Workflow[]> {
+    try {
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: '/automation/v3/workflows',
+      });
+      
+      const data = await response.json();
+      return data.workflows || [];
+    } catch (error) {
+      console.error('Error fetching workflows:', error);
+      return [];
+    }
+  }
 }
 
 export default HubSpotService; 

@@ -1,4 +1,5 @@
 import HubSpotService from '@/services/hubspotService';
+import { Workflow, Contact } from '@/types/hubspot';
 
 interface TimeSeriesData {
   date: string;
@@ -77,13 +78,13 @@ export async function analyzeCampaignEffectiveness(
   // Obtener campañas y contactos asociados
   const campaigns = await hubspotService.getCampaigns();
   
-  const campaignInsights = await Promise.all(campaigns.map(async (campaign) => {
+  const campaignInsights = await Promise.all(campaigns.map(async (campaign: Workflow) => {
     // Analizar contactos influenciados por cada campaña
     const contacts = await hubspotService.getContactsByCampaign(campaign.id);
     
     // Segmentar por tipo (afiliado vs simpatizante)
-    const affiliates = contacts.filter(c => c.properties.relacion_con_vox === 'Afiliado');
-    const sympathizers = contacts.filter(c => c.properties.relacion_con_vox === 'Simpatizante');
+    const affiliates = contacts.filter((c: Contact) => c.properties.tipo_contacto === 'Afiliado');
+    const sympathizers = contacts.filter((c: Contact) => c.properties.tipo_contacto === 'Simpatizante');
     
     // Calcular tasa de conversión para esta campaña
     const conversionRate = contacts.length > 0 ? affiliates.length / contacts.length : 0;
@@ -119,7 +120,7 @@ export async function analyzeWorkflowEffectiveness(
 ): Promise<WorkflowInsight[]> {
   const workflows = await hubspotService.getWorkflows();
   
-  const workflowInsights = await Promise.all(workflows.map(async (workflow) => {
+  const workflowInsights = await Promise.all(workflows.map(async (workflow: Workflow) => {
     // Obtener historial de ejecución
     const executions = await hubspotService.getWorkflowExecutionHistory(workflow.id);
     
