@@ -12,3 +12,29 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Contact {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  firstName       String?
+  lastName        String?
+  contactType     String?   // 'Afiliado' | 'Simpatizante'
+  affiliationDate DateTime?
+  region          String?
+  municipality    String?
+  country         String?
+  quota           Float?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  type        String
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
