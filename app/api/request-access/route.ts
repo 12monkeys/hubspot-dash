@@ -39,7 +39,15 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Asegurarnos de usar la URL correcta según el entorno
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      console.error("NEXT_PUBLIC_BASE_URL no está configurada");
+      return NextResponse.json({ 
+        error: "Error de configuración del servidor. Por favor, contacta con soporte.",
+      }, { status: 500 });
+    }
+    
     console.log("URL base para el enlace de confirmación:", baseUrl);
     const confirmationLink = `${baseUrl}/api/confirm-access?email=${encodeURIComponent(emailLower)}&token=${token}`;
 
@@ -108,12 +116,14 @@ Equipo de Análisis
     // Enviar el correo usando nuestra función mejorada
     try {
       console.log("Intentando enviar correo a:", emailLower);
+      console.log("URL de confirmación:", confirmationLink);
       console.log("Configuración de correo:", {
         server: process.env.EMAIL_SERVER,
         from: process.env.EMAIL_FROM,
         user: process.env.EMAIL_USER,
         host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT
+        port: process.env.EMAIL_PORT,
+        baseUrl: process.env.NEXT_PUBLIC_BASE_URL
       });
       
       await sendEmail({
@@ -134,6 +144,7 @@ Equipo de Análisis
         password: process.env.EMAIL_PASSWORD ? "Configurado (longitud: " + (process.env.EMAIL_PASSWORD?.length || 0) + ")" : "No configurado",
         host: process.env.EMAIL_HOST ? "Configurado" : "No configurado",
         port: process.env.EMAIL_PORT ? "Configurado" : "No configurado",
+        baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "No configurado"
       };
       
       console.log("Configuración de correo:", emailConfig);
