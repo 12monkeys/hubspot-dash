@@ -939,12 +939,12 @@ class HubSpotService {
         }
       });
       
-      return response.results;
+      const data: { results: Workflow[] } = await response.json(); // Ensure response is parsed as JSON
+
+      return data.results;
     } catch (error) {
       console.error('Error al obtener campañas:', error);
       return [];
     }
   }
-}
-
-export default HubSpotService; 
+} 
