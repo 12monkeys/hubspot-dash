@@ -1,0 +1,19 @@
+// Este es un archivo temporal para evitar errores de compilación
+// Se debe eliminar una vez que la migración a MongoDB esté completa
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+} 
