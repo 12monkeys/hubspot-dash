@@ -17,9 +17,15 @@ export async function GET(request: Request) {
       const db = client.db("hubspot-dash");
       await db.command({ ping: 1 });
       console.log("Conexión a MongoDB verificada correctamente");
+      
+      // Listar colecciones para diagnóstico
+      const collections = await db.listCollections().toArray();
+      console.log("Colecciones disponibles:", collections.map(c => c.name));
     } catch (mongoError) {
-      console.error("Error al conectar con MongoDB:", {
-        error: mongoError,
+      console.error("Error detallado al conectar con MongoDB:", {
+        name: mongoError instanceof Error ? mongoError.name : 'Unknown Error',
+        message: mongoError instanceof Error ? mongoError.message : String(mongoError),
+        code: (mongoError as any)?.code,
         stack: mongoError instanceof Error ? mongoError.stack : undefined
       });
       throw new Error("No se pudo establecer conexión con la base de datos");
@@ -137,7 +143,7 @@ export async function GET(request: Request) {
           </style>
           <script>
             setTimeout(function() {
-              window.location.href = "/";
+              window.location.href = "/dashboard";
             }, 3000);
           </script>
         </head>
@@ -146,7 +152,7 @@ export async function GET(request: Request) {
             <h2 class="success">✅ Acceso Confirmado</h2>
             <p>Tu acceso al Dashboard ha sido verificado correctamente.</p>
             <p>Serás redirigido automáticamente en 3 segundos...</p>
-            <a href="/" class="button">Ir al Dashboard</a>
+            <a href="/dashboard" class="button">Ir al Dashboard</a>
           </div>
         </body>
         </html>`,
@@ -159,7 +165,9 @@ export async function GET(request: Request) {
       );
     } catch (dbError) {
       console.error("Error detallado al verificar el token:", {
-        error: dbError,
+        name: dbError instanceof Error ? dbError.name : 'Unknown Error',
+        message: dbError instanceof Error ? dbError.message : String(dbError),
+        code: (dbError as any)?.code,
         stack: dbError instanceof Error ? dbError.stack : undefined,
         email,
         token
@@ -196,7 +204,9 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     console.error("Error general en el endpoint de confirmación:", {
-      error,
+      name: error instanceof Error ? error.name : 'Unknown Error',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
       stack: error instanceof Error ? error.stack : undefined
     });
     return new Response(
