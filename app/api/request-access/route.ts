@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { setToken } from "@/lib/tokens";
-import { sendEmail } from "@/lib/email";
+import { setToken } from "../../lib/tokens";
+import { sendEmail } from "../../lib/email";
 
 // Indicar que esta ruta es dinámica
 export const dynamic = 'force-dynamic';

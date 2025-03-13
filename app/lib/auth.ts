@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { NextAuthOptions, Session } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "./mongodb";
 import EmailProvider from "next-auth/providers/email";
 
 export const authOptions: NextAuthOptions = {

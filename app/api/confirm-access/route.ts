@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "../../lib/mongodb";
 
 // Indicar que esta ruta es dinámica
 export const dynamic = 'force-dynamic';
