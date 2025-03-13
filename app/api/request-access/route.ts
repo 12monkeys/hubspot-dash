@@ -3,6 +3,9 @@ import { nanoid } from "nanoid";
 import { setToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 
+// Indicar que esta ruta es dinámica
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { email } = await request.json();

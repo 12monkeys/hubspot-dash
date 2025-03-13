@@ -2,13 +2,20 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getToken, deleteToken } from "@/lib/tokens";
 
+// Indicar que esta ruta es dinámica
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
+    console.log("Iniciando proceso de confirmación de acceso");
     const { searchParams } = new URL(request.url);
     const email = searchParams.get("email");
     const token = searchParams.get("token");
 
+    console.log("Parámetros recibidos:", { email, token });
+
     if (!email || !token) {
+      console.log("Error: Email o token faltantes");
       return new Response(
         `<!DOCTYPE html>
         <html lang="es">
@@ -41,9 +48,14 @@ export async function GET(request: Request) {
 
     // Verificar el token en MongoDB
     try {
+      console.log("Iniciando verificación de token en MongoDB");
+      console.log("Intentando conectar a la base de datos...");
+      
       const isValid = await getToken(email, token);
+      console.log("Resultado de validación de token:", { isValid });
       
       if (!isValid) {
+        console.log("Token inválido o expirado para el email:", email);
         return new Response(
           `<!DOCTYPE html>
           <html lang="es">
