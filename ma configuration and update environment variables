@@ -1,0 +1,17 @@
+[33mcommit 8a890c2a8f33c8105a316d64ae00da66b9caccd7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: 12monkeys <twelvemonkeys@gmail.com>
+Date:   Thu Mar 13 15:30:43 2025 +0100
+
+    Removing Prisma assets
+
+[33mcommit 658538f80be899202e2eb45709968edd052ae62d[m
+Author: 12monkeys <twelvemonkeys@gmail.com>
+Date:   Thu Mar 13 15:20:37 2025 +0100
+
+    Removing Prisma assets
+
+[33mcommit ed5d3fab67b55b541f318065cc31222dbf80f0b2[m
+Author: 12monkeys <twelvemonkeys@gmail.com>
+Date:   Thu Mar 13 15:03:23 2025 +0100
+
+    Removing Prisma assets and environment variables additions
