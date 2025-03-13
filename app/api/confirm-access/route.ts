@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getToken, deleteToken } from "@/lib/tokens";
 import clientPromise from "@/lib/mongodb";
-import { signIn } from "next-auth/react";
 
 // Indicar que esta ruta es dinámica
 export const dynamic = 'force-dynamic';
@@ -85,7 +83,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Verificar el token en MongoDB directamente sin usar Prisma
+    // Verificar el token en MongoDB
     try {
       console.log("Iniciando verificación de token en MongoDB");
       
@@ -93,11 +91,11 @@ export async function GET(request: Request) {
       const db = client.db("hubspot-dash");
       const collection = db.collection("verification-tokens");
       
-      // Buscar el token directamente en MongoDB
+      // Buscar el token
       const tokenEntry = await collection.findOne({ 
-        email, 
+        identifier: email,
         token,
-        expires: { $gt: new Date() } // Verificar que no haya expirado
+        expires: { $gt: new Date() }
       });
       
       console.log("Resultado de búsqueda de token:", {
@@ -142,7 +140,7 @@ export async function GET(request: Request) {
 
       // Eliminar el token usado
       console.log("Token válido, procediendo a eliminarlo...");
-      await collection.deleteOne({ email, token });
+      await collection.deleteOne({ identifier: email, token });
       console.log("Token eliminado correctamente");
 
       // Establecer cookie de acceso
