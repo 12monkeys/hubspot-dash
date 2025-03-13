@@ -315,6 +315,90 @@ class HubSpotService {
       return [];
     }
   }
+
+  async getDashboardMetrics(): Promise<DashboardMetrics> {
+    try {
+      // Get contact summary
+      const contactSummary = await this.getContactSummary();
+      
+      // Get donations
+      const donations = await this.getDonations();
+      
+      // Calculate donation metrics
+      const totalDonaciones = donations.length;
+      const donacionesPromedio = totalDonaciones > 0 
+        ? donations.reduce((sum, d) => sum + d.properties.amount, 0) / totalDonaciones 
+        : 0;
+
+      // Calculate monthly growth
+      const fechaUnMesAtras = new Date();
+      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
+      const fechaUnMesAtrasStr = fechaUnMesAtras.toISOString().split('T')[0];
+      
+      const contactosRecientes = contactSummary.recientes;
+      const crecimientoMensual = contactSummary.total > 0 
+        ? (contactosRecientes / contactSummary.total) * 100 
+        : 0;
+
+      // Transform regional distribution
+      const distribucionRegional = Object.entries(contactSummary.regiones)
+        .map(([region, count]) => ({
+          region,
+          count
+        }));
+
+      // Get active campaigns
+      const campaigns = await this.client.apiRequest({
+        method: 'GET',
+        path: '/crm/v3/objects/campaigns',
+      });
+      const campaignsData = await campaigns.json();
+      const campañasActivas = campaignsData.results.filter((c: Campaign) => c.status === 'ACTIVE').length;
+
+      // Calculate conversion rate (simplified)
+      const tasaConversion = contactSummary.total > 0 
+        ? (contactSummary.afiliados / contactSummary.total) * 100 
+        : 0;
+
+      // Calculate quota metrics
+      const cuotaPromedio = donacionesPromedio;
+      const distribucionCuotas = [
+        { rango: '0-100', count: donations.filter(d => d.properties.amount <= 100).length },
+        { rango: '101-500', count: donations.filter(d => d.properties.amount > 100 && d.properties.amount <= 500).length },
+        { rango: '501-1000', count: donations.filter(d => d.properties.amount > 500 && d.properties.amount <= 1000).length },
+        { rango: '1000+', count: donations.filter(d => d.properties.amount > 1000).length }
+      ];
+
+      // Calculate monthly quota income
+      const ingresoCuotasMensual = donations
+        .filter(d => new Date(d.properties.date) >= fechaUnMesAtras)
+        .reduce((sum, d) => sum + d.properties.amount, 0);
+
+      // Get acquisition sources
+      const fuentesAdquisicion = [
+        { source: 'Directo', count: contactSummary.afiliados },
+        { source: 'Indirecto', count: contactSummary.simpatizantes }
+      ];
+
+      return {
+        totalAfiliados: contactSummary.afiliados,
+        totalSimpatizantes: contactSummary.simpatizantes,
+        totalDonaciones,
+        donacionesPromedio,
+        crecimientoMensual,
+        distribucionRegional,
+        campañasActivas,
+        tasaConversion,
+        cuotaPromedio,
+        distribucionCuotas,
+        ingresoCuotasMensual,
+        fuentesAdquisicion
+      };
+    } catch (error) {
+      console.error('Error getting dashboard metrics:', error);
+      throw error;
+    }
+  }
 }
 
 export default HubSpotService; 
