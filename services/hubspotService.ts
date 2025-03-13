@@ -497,6 +497,34 @@ class HubSpotService {
       return [];
     }
   }
+
+  async getAllSchemas(): Promise<ObjectSchema[]> {
+    try {
+      // Check cache first
+      if (this.schemaCache.size > 0) {
+        return Array.from(this.schemaCache.values());
+      }
+
+      // Get all schemas from HubSpot
+      const response = await this.client.apiRequest({
+        method: 'GET',
+        path: '/crm/v3/schemas',
+      });
+
+      const data = await response.json();
+      const schemas: ObjectSchema[] = data.results || [];
+
+      // Cache the schemas
+      schemas.forEach(schema => {
+        this.schemaCache.set(schema.name, schema);
+      });
+
+      return schemas;
+    } catch (error) {
+      console.error('Error fetching schemas:', error);
+      return [];
+    }
+  }
 }
 
 export default HubSpotService; 
