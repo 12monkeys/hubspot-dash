@@ -9,7 +9,7 @@ export const authOptions = {
   providers: [
     EmailProvider({
       server: process.env.EMAIL_SERVER,
-      from: "noreply@sneakerlost.com",
+      from: process.env.EMAIL_FROM || "carlosguerrerodiaz@sneakerlost.com",
       maxAge: 24 * 60 * 60, // 24 horas
       async sendVerificationRequest({ identifier: email, url }) {
         // Verificar dominio
