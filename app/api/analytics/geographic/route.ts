@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { HubSpotService } from "@/services/hubspotService";
+import HubSpotService from "@/services/hubspotService";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
   // Verificar autenticación
@@ -11,15 +11,15 @@ export async function GET(request: Request) {
   }
   
   try {
-    const hubspotService = new HubSpotService();
-    const dashboardData = await hubspotService.getDashboardData();
+    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
+    const dashboardData = await hubspotService.getDashboardMetrics();
     
     // Transformar datos de distribución regional al formato adecuado para el gráfico
-    const data = Object.entries(dashboardData.regionDistribution)
-      .map(([region, count]) => ({
-        region,
-        value: count,
-        percentage: count / dashboardData.totalContacts
+    const data = dashboardData.distribucionRegional
+      .map((item) => ({
+        region: item.region,
+        value: item.count,
+        percentage: item.count / dashboardData.totalAfiliados
       }))
       .sort((a, b) => b.value - a.value);
     
