@@ -1,41 +1,68 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import MetricasGenerales from '../components/MetricasGenerales';
-import DistribucionRegional from '../components/DistribucionRegional';
-import MetricasCuotas from '../components/MetricasCuotas';
-import { DashboardMetrics } from '../types/hubspot';
+import { useRouter } from 'next/navigation';
+import LoginForm from '@/components/auth/LoginForm';
+import MetricasGenerales from '@/components/MetricasGenerales';
+import DistribucionRegional from '@/components/DistribucionRegional';
+import MetricasCuotas from '@/components/MetricasCuotas';
+import { DashboardMetrics } from '@/types/hubspot';
 
 export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{message: string; details?: string} | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchData = async () => {
+    // Verificar si el usuario tiene acceso
+    const checkAccess = async () => {
       try {
-        const response = await fetch('/api/dashboard');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.details || data.error || 'Error desconocido');
+        const response = await fetch('/api/check-access');
+        if (response.ok) {
+          setIsVerified(true);
+          fetchDashboardData();
+        } else {
+          setIsVerified(false);
+          setLoading(false);
         }
-        
-        setMetrics(data);
-      } catch (err: any) {
-        setError({
-          message: 'Error al cargar los datos del dashboard',
-          details: err?.message || 'Error desconocido'
-        });
-        console.error('Error detallado:', err);
-      } finally {
+      } catch (err) {
+        setIsVerified(false);
         setLoading(false);
       }
     };
 
-    fetchData();
+    checkAccess();
   }, []);
 
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/dashboard');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Error desconocido');
+      }
+      
+      setMetrics(data);
+    } catch (err: any) {
+      setError({
+        message: 'Error al cargar los datos del dashboard',
+        details: err?.message || 'Error desconocido'
+      });
+      console.error('Error detallado:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Si no está verificado, mostrar el formulario de login
+  if (!isVerified) {
+    return <LoginForm />;
+  }
+
+  // Si está cargando, mostrar el spinner
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -44,6 +71,7 @@ export default function Home() {
     );
   }
 
+  // Si hay un error, mostrarlo
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -57,10 +85,12 @@ export default function Home() {
     );
   }
 
+  // Si no hay métricas, no mostrar nada
   if (!metrics) {
     return null;
   }
 
+  // Mostrar el dashboard
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
       <h1 className="text-3xl font-bold mb-8">Dashboard Político</h1>
