@@ -12,7 +12,8 @@ export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{message: string; details?: string} | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -20,15 +21,18 @@ export default function Home() {
     const checkAccess = async () => {
       try {
         const response = await fetch('/api/check-access');
-        if (response.ok) {
-          setIsVerified(true);
+        const data = await response.json();
+        
+        if (response.ok && data.authorized) {
+          setIsAuthorized(true);
+          setUserEmail(data.email || null);
           fetchDashboardData();
         } else {
-          setIsVerified(false);
+          setIsAuthorized(false);
           setLoading(false);
         }
       } catch (err) {
-        setIsVerified(false);
+        setIsAuthorized(false);
         setLoading(false);
       }
     };
@@ -57,8 +61,8 @@ export default function Home() {
     }
   };
 
-  // Si no está verificado, mostrar el formulario de login
-  if (!isVerified) {
+  // Si no está autorizado, mostrar el formulario de login
+  if (!isAuthorized) {
     return <LoginForm />;
   }
 
@@ -94,6 +98,12 @@ export default function Home() {
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
       <h1 className="text-3xl font-bold mb-8">Dashboard Político</h1>
+      
+      {userEmail && (
+        <div className="mb-4 text-sm text-gray-600">
+          Usuario: {userEmail}
+        </div>
+      )}
       
       <MetricasGenerales metrics={metrics} />
       

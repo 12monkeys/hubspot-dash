@@ -1,38 +1,30 @@
-import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
-    // Verificar dominio de email
-    const token = req.nextauth.token;
-    if (token?.email && !token.email.endsWith("@sneakerlost.com")) {
-      return NextResponse.redirect(new URL("/auth/error", req.url));
-    }
-
-    // Verificar cookie de acceso
-    const accessVerified = req.cookies.get("accessVerified");
-    if (!accessVerified || accessVerified.value !== "true") {
-      // Si no tiene la cookie pero sí tiene token, permitir acceso
-      if (token) {
-        return NextResponse.next();
-      }
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => {
-        // Permitir acceso si tiene token o cookie
-        return !!token;
-      },
-    },
-    pages: {
-      signIn: "/auth/signin",
-    },
+export function middleware(request: NextRequest) {
+  // Verificar cookie de acceso
+  const dashboardAccess = request.cookies.get("dashboard-access");
+  
+  // Rutas protegidas que requieren autenticación
+  const protectedPaths = [
+    "/dashboard",
+    "/api/analytics",
+    "/api/metrics-recommendations",
+    "/api/schemas",
+  ];
+  
+  // Verificar si la ruta actual está protegida
+  const isProtectedPath = protectedPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  );
+  
+  // Si es una ruta protegida y no tiene la cookie de acceso, redirigir a la página principal
+  if (isProtectedPath && !dashboardAccess) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
-);
+  
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

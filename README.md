@@ -1,224 +1,104 @@
-# Dashboard Político HubSpot
+# Dashboard de Inteligencia de Negocio
 
-Este dashboard proporciona una visualización interactiva de los datos almacenados en HubSpot relacionados con afiliados, simpatizantes, donaciones y campañas de un partido político.
+Este proyecto es un dashboard de inteligencia de negocio para visualizar métricas y análisis de datos de HubSpot.
 
 ## Características
 
-- Visualización de métricas clave (KPIs)
-  - Total de afiliados y simpatizantes
-  - Donaciones totales y promedio
-  - Campañas activas
-  - Tasa de conversión
-- Distribución regional de afiliados y simpatizantes
-- Integración con HubSpot API
-- Interfaz moderna y responsive
+- Autenticación basada en correo electrónico con dominio específico (@sneakerlost.com)
+- Visualización de métricas generales
+- Distribución regional de datos
+- Análisis de cuotas y tendencias
+- Interfaz moderna y responsiva
 
-## Requisitos Previos
+## Tecnologías
 
-- Node.js 18.x o superior
-- Cuenta de HubSpot con acceso API
-- Cuenta de AWS (para manejo seguro de secretos)
+- Next.js 14 (App Router)
+- MongoDB para almacenamiento de tokens
+- Tailwind CSS para estilos
+- Nodemailer para envío de correos
+- Vercel para despliegue
 
-## Instalación
+## Configuración
 
-1. Clonar el repositorio:
-```bash
-git clone [URL_DEL_REPOSITORIO]
-cd hubspot-dash
+### Variables de entorno
+
+El proyecto requiere las siguientes variables de entorno:
+
+```
+# Base URL
+NEXT_PUBLIC_BASE_URL=https://tu-dominio.com
+
+# MongoDB
+MONGODB_URI=mongodb+srv://usuario:contraseña@cluster.mongodb.net/hubspot-dash
+
+# Email
+EMAIL_SERVER=smtp://usuario:contraseña@smtp.proveedor.com:587
+EMAIL_FROM=noreply@tudominio.com
+EMAIL_USER=usuario
+EMAIL_PASSWORD=contraseña
+EMAIL_HOST=smtp.proveedor.com
+EMAIL_PORT=587
 ```
 
-2. Instalar dependencias:
-```bash
-npm install
-```
+### Desarrollo local
 
-3. Configurar variables de entorno:
-- Copiar el archivo `.env.example` a `.env.local`
-- Rellenar las variables con los valores correspondientes:
-  - `HUBSPOT_ACCESS_TOKEN`: Token de acceso de HubSpot
-  - `AWS_REGION`: Región de AWS
-  - `AWS_ACCESS_KEY_ID`: ID de clave de acceso de AWS
-  - `AWS_SECRET_ACCESS_KEY`: Clave secreta de AWS
-  - `AWS_SECRET_NAME`: Nombre del secreto en AWS Secrets Manager
+1. Clona el repositorio
+2. Instala las dependencias:
+   ```
+   npm install
+   ```
+3. Configura las variables de entorno en un archivo `.env.local`
+4. Inicia el servidor de desarrollo:
+   ```
+   npm run dev
+   ```
 
-4. Iniciar el servidor de desarrollo:
-```bash
-npm run dev
-```
+### Despliegue en Vercel
 
-## Uso
+1. Conecta tu repositorio a Vercel
+2. Configura las variables de entorno en la configuración del proyecto en Vercel
+3. Despliega el proyecto
 
-El dashboard se actualizará automáticamente cada vez que se cargue la página, mostrando los datos más recientes de HubSpot. Los datos visualizados incluyen:
+## Flujo de autenticación
 
-- Métricas generales en la parte superior
-- Gráfico de distribución regional
-- Indicadores de crecimiento y conversión
+1. El usuario ingresa su correo electrónico en la página principal
+2. Si el dominio es válido (@sneakerlost.com), se envía un correo con un enlace de confirmación
+3. Al hacer clic en el enlace, se establece una cookie de acceso
+4. El usuario es redirigido al dashboard
 
-## Configuración de HubSpot
+## Estructura del proyecto
 
-Para que el dashboard funcione correctamente, asegúrese de tener configurados en HubSpot:
+- `/app`: Componentes y rutas de la aplicación
+- `/components`: Componentes reutilizables
+- `/lib`: Utilidades y configuraciones
+- `/public`: Archivos estáticos
+- `/types`: Definiciones de tipos TypeScript
 
-1. Propiedades personalizadas para contactos:
-   - `tipo_contacto`: Tipo enumerado (Afiliado/Simpatizante)
-   - `fecha_afiliacion`: Fecha
-   - `region`: Texto
-   - `total_donaciones`: Número
+## Endpoints API
 
-2. Objeto personalizado para donaciones con las propiedades:
-   - `amount`: Número
-   - `date`: Fecha
-   - `contact_id`: Referencia a contacto
-   - `campaign`: Texto
-   - `payment_method`: Texto
+- `/api/request-access`: Solicitar acceso al dashboard
+- `/api/confirm-access`: Confirmar acceso mediante token
+- `/api/check-access`: Verificar si el usuario tiene acceso
+- `/api/dashboard`: Obtener datos del dashboard
 
-3. Objeto personalizado para campañas con las propiedades:
-   - `name`: Texto
-   - `start_date`: Fecha
-   - `end_date`: Fecha
-   - `status`: Tipo enumerado (active/completed/planned)
-   - `type`: Texto
-   - `budget`: Número
-   - `results`: Texto
+## Mantenimiento
 
-## Seguridad
+### MongoDB
 
-- Las credenciales de API se manejan de forma segura a través de AWS Secrets Manager
-- Los tokens de acceso nunca se exponen en el frontend
-- Se implementan mejores prácticas de seguridad para el manejo de datos sensibles
+Para el mantenimiento de la base de datos MongoDB:
 
-## Contribuir
+1. Los tokens de verificación se almacenan en la colección `verification-tokens`
+2. Los tokens caducan automáticamente después de 1 hora
+3. Se recomienda configurar un índice TTL en MongoDB para eliminar automáticamente los tokens caducados
 
-1. Fork del repositorio
-2. Crear una rama para la nueva funcionalidad
-3. Commit de los cambios
-4. Push a la rama
-5. Crear un Pull Request
+### Correo electrónico
+
+Para el servicio de correo electrónico en producción, se recomienda:
+
+1. Usar un servicio como Resend, SendGrid o Amazon SES
+2. Configurar correctamente los registros SPF y DKIM para mejorar la entregabilidad
+3. Monitorear las tasas de entrega y rebote
 
 ## Licencia
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.
-
-# HubSpot Dashboard
-
-Dashboard de inteligencia de negocio para visualizar y analizar datos de HubSpot.
-
-## Configuración del Entorno
-
-### Variables de Entorno
-
-El proyecto utiliza variables de entorno para la configuración. Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
-
-```
-# Auth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=tu_clave_secreta_larga_y_aleatoria
-
-# Email
-EMAIL_SERVER=smtp://usuario:contraseña@smtp.ejemplo.com:587
-EMAIL_FROM=tu@email.com
-EMAIL_USER=usuario
-EMAIL_PASSWORD=contraseña
-EMAIL_HOST=smtp.ejemplo.com
-EMAIL_PORT=587
-
-# Prisma
-DATABASE_URL="file:./dev.db"
-
-# HubSpot
-HUBSPOT_ACCESS_TOKEN=tu_token_de_hubspot
-```
-
-### Configuración de Correo Electrónico
-
-Para que el sistema de autenticación funcione correctamente, necesitas configurar un servidor SMTP para el envío de correos electrónicos. Tienes varias opciones:
-
-#### 1. Gmail
-
-Para usar Gmail, necesitas una "contraseña de aplicación" si tienes verificación en dos pasos habilitada:
-
-1. Ve a [Contraseñas de aplicación](https://myaccount.google.com/apppasswords)
-2. Selecciona "Otra" como aplicación y dale un nombre (por ejemplo, "HubSpot Dashboard")
-3. Usa la contraseña generada en tu configuración:
-
-```
-EMAIL_SERVER=smtp://tu_correo@gmail.com:tu_contraseña_de_aplicacion@smtp.gmail.com:587
-EMAIL_FROM=tu_correo@gmail.com
-EMAIL_USER=tu_correo@gmail.com
-EMAIL_PASSWORD=tu_contraseña_de_aplicacion
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-```
-
-#### 2. Servicios de Correo Transaccional
-
-Para entornos de producción, se recomienda usar servicios como:
-
-- **SendGrid**:
-  ```
-  EMAIL_SERVER=smtp://apikey:TU_API_KEY@smtp.sendgrid.net:587
-  EMAIL_FROM=tu_correo_verificado@dominio.com
-  EMAIL_USER=apikey
-  EMAIL_PASSWORD=TU_API_KEY
-  EMAIL_HOST=smtp.sendgrid.net
-  EMAIL_PORT=587
-  ```
-
-- **Mailgun**:
-  ```
-  EMAIL_SERVER=smtp://postmaster@tu_dominio.mailgun.org:TU_PASSWORD@smtp.mailgun.org:587
-  EMAIL_FROM=tu_correo@dominio.com
-  EMAIL_USER=postmaster@tu_dominio.mailgun.org
-  EMAIL_PASSWORD=TU_PASSWORD
-  EMAIL_HOST=smtp.mailgun.org
-  EMAIL_PORT=587
-  ```
-
-- **Resend** (recomendado para Vercel):
-  ```
-  EMAIL_SERVER=smtp://resend:re_123456789@smtp.resend.com:587
-  EMAIL_FROM=tu_correo@dominio.com
-  EMAIL_USER=resend
-  EMAIL_PASSWORD=re_123456789
-  EMAIL_HOST=smtp.resend.com
-  EMAIL_PORT=587
-  ```
-
-#### 3. Para Desarrollo Local
-
-Para desarrollo local, puedes usar [Ethereal](https://ethereal.email) o [MailHog](https://github.com/mailhog/MailHog):
-
-```
-EMAIL_SERVER=smtp://user:pass@localhost:1025
-EMAIL_FROM=test@example.com
-EMAIL_USER=user
-EMAIL_PASSWORD=pass
-EMAIL_HOST=localhost
-EMAIL_PORT=1025
-```
-
-## Desarrollo
-
-```bash
-# Instalar dependencias
-npm install
-
-# Generar el cliente de Prisma
-npx prisma generate
-
-# Iniciar el servidor de desarrollo
-npm run dev
-```
-
-## Producción
-
-```bash
-# Construir la aplicación
-npm run build
-
-# Iniciar el servidor de producción
-npm start
-```
-
-## Despliegue en Vercel
-
-Este proyecto está configurado para desplegarse en Vercel. Asegúrate de configurar las variables de entorno en el panel de control de Vercel.
+Este proyecto es propiedad de Sneakerlost y su uso está restringido a personal autorizado. 

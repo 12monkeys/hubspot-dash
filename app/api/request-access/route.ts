@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { prisma } from "@/lib/prisma";
+import { setToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
@@ -27,15 +27,9 @@ export async function POST(request: Request) {
     // Generar un token único
     const token = nanoid();
     
-    // Guardar el token en la base de datos
+    // Guardar el token en MongoDB
     try {
-      await prisma.verificationToken.create({
-        data: {
-          identifier: emailLower,
-          token,
-          expires: new Date(Date.now() + 3600000), // 1 hora
-        },
-      });
+      await setToken(emailLower, token);
       console.log("Token guardado en la base de datos correctamente");
     } catch (dbError) {
       console.error("Error al guardar el token en la base de datos:", dbError);

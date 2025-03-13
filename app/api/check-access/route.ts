@@ -1,30 +1,25 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const cookieStore = cookies();
-    const accessVerified = cookieStore.get("accessVerified");
-    
-    console.log("Cookie de acceso verificado:", accessVerified ? accessVerified.value : "No encontrada");
+    const accessCookie = cookieStore.get("dashboard-access");
 
-    if (accessVerified && accessVerified.value === "true") {
-      return NextResponse.json({ verified: true });
+    if (!accessCookie || !accessCookie.value) {
+      return NextResponse.json({ authorized: false }, { status: 403 });
     }
 
-    // Proporcionar más información sobre por qué no está verificado
+    // Si la cookie existe, el usuario está autorizado
     return NextResponse.json({ 
-      verified: false, 
-      reason: "Cookie de acceso no encontrada o no válida",
-      cookieExists: !!accessVerified,
-      cookieValue: accessVerified ? accessVerified.value : null
-    }, { status: 403 });
+      authorized: true,
+      email: accessCookie.value
+    });
   } catch (error) {
     console.error("Error al verificar el acceso:", error);
-    return NextResponse.json({ 
-      verified: false, 
-      error: "Error al verificar el acceso",
-      details: process.env.NODE_ENV === 'development' ? error : undefined
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error al verificar el acceso. Por favor, inténtalo de nuevo más tarde." },
+      { status: 500 }
+    );
   }
 } 
