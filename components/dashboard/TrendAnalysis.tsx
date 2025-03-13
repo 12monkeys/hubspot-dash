@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, Cell
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
@@ -10,13 +11,29 @@ import { Select } from "@/components/ui/Select";
 interface TrendData {
   date: string;
   value: number;
+  target?: number;
+  forecast?: number;
+}
+
+interface TrendAnalysis {
+  metric: string;
+  data: TrendData[];
+  summary: {
+    current: number;
+    previous: number;
+    change: number;
+    target: number;
+    forecast: number;
+    confidence: number;
+  };
 }
 
 export default function TrendAnalysis() {
   const [timeframe, setTimeframe] = useState("30d");
   const [metric, setMetric] = useState("new_contacts");
-  const [data, setData] = useState<TrendData[]>([]);
+  const [analysis, setAnalysis] = useState<TrendAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"line" | "area" | "bar">("line");
   
   useEffect(() => {
     async function fetchData() {
@@ -24,7 +41,7 @@ export default function TrendAnalysis() {
       try {
         const response = await fetch(`/api/analytics/trends?metric=${metric}&timeframe=${timeframe}`);
         const result = await response.json();
-        setData(result.data);
+        setAnalysis(result.data);
       } catch (error) {
         console.error("Error fetching trend data:", error);
       } finally {
@@ -47,7 +64,89 @@ export default function TrendAnalysis() {
     { value: "new_affiliates", label: "Nuevos afiliados" },
     { value: "conversion_rate", label: "Tasa de conversión" },
     { value: "average_quota", label: "Cuota promedio" },
+    { value: "revenue", label: "Ingresos" },
+    { value: "engagement", label: "Engagement" },
   ];
+
+  const viewModeOptions = [
+    { value: "line", label: "Línea" },
+    { value: "area", label: "Área" },
+    { value: "bar", label: "Barras" },
+  ];
+  
+  const renderChart = () => {
+    if (!analysis) return null;
+
+    const ChartComponent = viewMode === "line" ? LineChart : 
+                          viewMode === "area" ? AreaChart : BarChart;
+    
+    const DataComponent = viewMode === "line" ? Line : 
+                         viewMode === "area" ? Area : Bar;
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <ChartComponent
+          data={analysis.data}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="date" 
+            tickFormatter={date => new Date(date).toLocaleDateString('es-ES', { 
+              day: '2-digit', 
+              month: '2-digit',
+              year: timeframe === "1y" ? 'numeric' : undefined
+            })}
+          />
+          <YAxis />
+          <Tooltip 
+            formatter={(value) => {
+              if (typeof value === 'number') {
+                return [
+                  metric === 'average_quota' ? `${value.toFixed(2)} €` : 
+                  metric === 'conversion_rate' ? `${(value * 100).toFixed(1)}%` : 
+                  metric === 'revenue' ? `${value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}` :
+                  value.toString(),
+                  metricOptions.find(o => o.value === metric)?.label
+                ];
+              }
+              return [value.toString(), metricOptions.find(o => o.value === metric)?.label];
+            }}
+            labelFormatter={date => new Date(date).toLocaleDateString('es-ES')}
+          />
+          <Legend />
+          <DataComponent 
+            type="monotone" 
+            dataKey="value" 
+            name={metricOptions.find(o => o.value === metric)?.label}
+            stroke="#8884d8" 
+            fill={viewMode === "area" ? "#8884d8" : undefined}
+            activeDot={{ r: 8 }} 
+          />
+          {analysis.data[0]?.target && (
+            <DataComponent 
+              type="monotone" 
+              dataKey="target" 
+              name="Objetivo"
+              stroke="#82ca9d" 
+              strokeDasharray="5 5"
+              fill={viewMode === "area" ? "#82ca9d" : undefined}
+            />
+          )}
+          {analysis.data[0]?.forecast && (
+            <DataComponent 
+              type="monotone" 
+              dataKey="forecast" 
+              name="Pronóstico"
+              stroke="#ffc658" 
+              strokeDasharray="5 5"
+              fill={viewMode === "area" ? "#ffc658" : undefined}
+            />
+          )}
+        </ChartComponent>
+      </ResponsiveContainer>
+    );
+  };
   
   return (
     <Card className="shadow-lg">
@@ -66,6 +165,12 @@ export default function TrendAnalysis() {
             options={timeframeOptions}
             className="text-sm"
           />
+          <Select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as "line" | "area" | "bar")}
+            options={viewModeOptions}
+            className="text-sm"
+          />
         </div>
       </CardHeader>
       
@@ -74,87 +179,64 @@ export default function TrendAnalysis() {
           <div className="h-72 flex items-center justify-center">
             <span className="text-gray-500">Cargando datos...</span>
           </div>
-        ) : data.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={date => new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
-              />
-              <YAxis />
-              <Tooltip 
-                formatter={(value) => {
-                  if (typeof value === 'number') {
-                    return [
-                      metric === 'average_quota' ? `${value.toFixed(2)} €` : 
-                      metric === 'conversion_rate' ? `${(value * 100).toFixed(1)}%` : 
-                      value.toString(),
-                      metricOptions.find(o => o.value === metric)?.label
-                    ];
+        ) : analysis ? (
+          <>
+            {renderChart()}
+            
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Valor Actual</p>
+                <p className="text-2xl font-bold">
+                  {metric === 'average_quota' 
+                    ? `${analysis.summary.current.toFixed(2)} €`
+                    : metric === 'conversion_rate'
+                      ? `${(analysis.summary.current * 100).toFixed(1)}%`
+                      : metric === 'revenue'
+                        ? `${analysis.summary.current.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`
+                        : analysis.summary.current.toLocaleString()
                   }
-                  return [value.toString(), metricOptions.find(o => o.value === metric)?.label];
-                }}
-                labelFormatter={date => new Date(date).toLocaleDateString('es-ES')}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                name={metricOptions.find(o => o.value === metric)?.label}
-                stroke="#8884d8" 
-                activeDot={{ r: 8 }} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
+                </p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Cambio</p>
+                <p className={`text-2xl font-bold ${analysis.summary.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {analysis.summary.change >= 0 ? '▲' : '▼'} {Math.abs(analysis.summary.change).toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Objetivo</p>
+                <p className="text-2xl font-bold">
+                  {metric === 'average_quota' 
+                    ? `${analysis.summary.target.toFixed(2)} €`
+                    : metric === 'conversion_rate'
+                      ? `${(analysis.summary.target * 100).toFixed(1)}%`
+                      : metric === 'revenue'
+                        ? `${analysis.summary.target.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`
+                        : analysis.summary.target.toLocaleString()
+                  }
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Pronóstico</p>
+                <p className="text-2xl font-bold">
+                  {metric === 'average_quota' 
+                    ? `${analysis.summary.forecast.toFixed(2)} €`
+                    : metric === 'conversion_rate'
+                      ? `${(analysis.summary.forecast * 100).toFixed(1)}%`
+                      : metric === 'revenue'
+                        ? `${analysis.summary.forecast.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}`
+                        : analysis.summary.forecast.toLocaleString()
+                  }
+                </p>
+                <p className="text-xs text-gray-500">
+                  Confianza: {analysis.summary.confidence.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="h-72 flex items-center justify-center">
             <span className="text-gray-500">No hay datos disponibles para el período seleccionado</span>
-          </div>
-        )}
-        
-        {data.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-500">Promedio</p>
-              <p className="text-2xl font-bold">
-                {metric === 'average_quota' 
-                  ? (data.reduce((sum, item) => sum + item.value, 0) / data.length).toFixed(2) + ' €'
-                  : metric === 'conversion_rate'
-                    ? ((data.reduce((sum, item) => sum + item.value, 0) / data.length) * 100).toFixed(1) + '%'
-                    : (data.reduce((sum, item) => sum + item.value, 0) / data.length).toFixed(0)
-                }
-              </p>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-500">Máximo</p>
-              <p className="text-2xl font-bold">
-                {metric === 'average_quota' 
-                  ? Math.max(...data.map(item => item.value)).toFixed(2) + ' €'
-                  : metric === 'conversion_rate'
-                    ? (Math.max(...data.map(item => item.value)) * 100).toFixed(1) + '%'
-                    : Math.max(...data.map(item => item.value)).toString()
-                }
-              </p>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-lg">
-              <p className="text-sm text-gray-500">Tendencia</p>
-              <p className="text-2xl font-bold flex justify-center items-center">
-                {data[data.length - 1].value > data[0].value 
-                  ? <span className="text-green-600">▲</span> 
-                  : data[data.length - 1].value < data[0].value 
-                    ? <span className="text-red-600">▼</span>
-                    : <span className="text-gray-600">◆</span>
-                }
-                {metric === 'conversion_rate'
-                  ? ((data[data.length - 1].value - data[0].value) * 100).toFixed(1) + '%'
-                  : (((data[data.length - 1].value - data[0].value) / data[0].value) * 100).toFixed(1) + '%'
-                }
-              </p>
-            </div>
           </div>
         )}
       </CardContent>

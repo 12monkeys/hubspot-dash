@@ -1,44 +1,76 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
 
 // Define the interface for a region distribution
 type RegionDistribution = {
   region: string;
   count: number;
   percentage: number;
+  growth: number;
+  conversionRate: number;
 };
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function GeographicDistribution() {
   const [distribution, setDistribution] = useState<RegionDistribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const [metric, setMetric] = useState<"count" | "growth" | "conversion">("count");
   
   useEffect(() => {
-    async function fetchDistribution() {
+    async function fetchData() {
       setLoading(true);
       try {
         const response = await fetch('/api/analytics/geographic');
         const result = await response.json();
         setDistribution(result.data);
       } catch (error) {
-        console.error("Error fetching geographic distribution:", error);
+        console.error("Error fetching geographic data:", error);
       } finally {
         setLoading(false);
       }
     }
     
-    fetchDistribution();
+    fetchData();
   }, []);
   
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658', '#8dd1e1'];
+  const metricOptions = [
+    { value: "count", label: "Total" },
+    { value: "growth", label: "Crecimiento" },
+    { value: "conversion", label: "Conversión" },
+  ];
+  
+  const getData = () => {
+    return distribution.map(item => ({
+      ...item,
+      value: metric === "count" ? item.count :
+             metric === "growth" ? item.growth :
+             item.conversionRate
+    }));
+  };
+  
+  const getValueFormatter = (value: number) => {
+    if (metric === "count") return value.toLocaleString();
+    if (metric === "growth") return `${value.toFixed(1)}%`;
+    return `${(value * 100).toFixed(1)}%`;
+  };
   
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle>Distribución Geográfica</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xl font-bold">Distribución Regional</CardTitle>
+        <Select
+          value={metric}
+          onChange={(e) => setMetric(e.target.value as "count" | "growth" | "conversion")}
+          options={metricOptions}
+          className="w-32"
+        />
       </CardHeader>
+      
       <CardContent>
         {loading ? (
           <div className="h-80 flex items-center justify-center">
@@ -49,7 +81,7 @@ export default function GeographicDistribution() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={distribution}
+                  data={getData()}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -65,34 +97,45 @@ export default function GeographicDistribution() {
                 </Pie>
                 <Tooltip
                   formatter={(value, name, props) => [
-                    `${value.toLocaleString()} (${(props.payload.percentage * 100).toFixed(1)}%)`,
+                    getValueFormatter(value as number),
                     props.payload.region
                   ]}
                 />
               </PieChart>
             </ResponsiveContainer>
             
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              {distribution.slice(0, 6).map((region, index) => (
-                <div key={index} className="flex items-center">
-                  <div 
-                    className="w-3 h-3 mr-2 rounded-full" 
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  ></div>
-                  <span className="text-gray-700 truncate">{region.region}</span>
-                  <span className="ml-1 text-gray-500">({region.percentage * 100}%)</span>
-                </div>
-              ))}
-              {distribution.length > 6 && (
-                <div className="text-gray-500 text-xs col-span-2 text-center mt-2">
-                  +{distribution.length - 6} regiones más
-                </div>
-              )}
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-500">Región con mayor crecimiento</p>
+                <p className="text-lg font-semibold">
+                  {distribution.reduce((max, item) => 
+                    item.growth > max.growth ? item : max
+                  ).region}
+                </p>
+                <p className="text-sm text-green-600">
+                  {distribution.reduce((max, item) => 
+                    item.growth > max.growth ? item : max
+                  ).growth.toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-500">Mejor tasa de conversión</p>
+                <p className="text-lg font-semibold">
+                  {distribution.reduce((max, item) => 
+                    item.conversionRate > max.conversionRate ? item : max
+                  ).region}
+                </p>
+                <p className="text-sm text-green-600">
+                  {(distribution.reduce((max, item) => 
+                    item.conversionRate > max.conversionRate ? item : max
+                  ).conversionRate * 100).toFixed(1)}%
+                </p>
+              </div>
             </div>
           </div>
         ) : (
           <div className="h-80 flex items-center justify-center">
-            <span className="text-gray-500">No hay datos de distribución geográfica disponibles</span>
+            <span className="text-gray-500">No hay datos disponibles</span>
           </div>
         )}
       </CardContent>

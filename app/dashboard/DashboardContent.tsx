@@ -5,7 +5,10 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import KPIOverview from "@/components/dashboard/KPIOverview";
 import TrendAnalysis from "@/components/dashboard/TrendAnalysis";
-import Tabs from "@/components/Tabs";
+import CampaignAnalysis from "@/components/dashboard/CampaignAnalysis";
+import GeographicDistribution from "@/components/dashboard/GeographicDistribution";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 export default function DashboardContent() {
   const { data: session, status } = useSession();
@@ -36,15 +39,21 @@ export default function DashboardContent() {
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard HubSpot</h1>
+          <h1 className="text-2xl font-bold">Dashboard de Inteligencia de Negocio</h1>
           <p className="text-gray-600">Bienvenido, {session?.user?.name || session?.user?.email}</p>
         </div>
-        <div>
+        <div className="flex space-x-4">
           <button 
             onClick={() => window.location.reload()}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Actualizar datos
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Exportar reporte
           </button>
         </div>
       </header>
@@ -55,66 +64,73 @@ export default function DashboardContent() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <TrendAnalysis />
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <Tabs
-            tabs={[
-              {
-                label: "Desglose por edad",
-                content: (
-                  <div className="h-64 flex items-center justify-center text-gray-500">
-                    Gráfico de distribución por edades
-                  </div>
-                )
-              },
-              {
-                label: "Desglose por región",
-                content: (
-                  <div className="h-64 flex items-center justify-center text-gray-500">
-                    Gráfico de distribución por regiones
-                  </div>
-                )
-              }
-            ]}
-          />
-        </div>
+        <GeographicDistribution />
       </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow mb-8">
-        <h2 className="text-xl font-bold mb-4">Campañas Activas</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Inicio</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alcance</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversiones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Campaña de Verano</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Activa</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">10/06/2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,245</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">86 (6.9%)</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Newsletter Mensual</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Activa</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">01/03/2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">3,560</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">198 (5.6%)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+
+      <div className="mb-8">
+        <CampaignAnalysis />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Análisis de Engagement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="email">
+              <TabsList>
+                <TabsTrigger value="email">Emails</TabsTrigger>
+                <TabsTrigger value="social">Redes Sociales</TabsTrigger>
+                <TabsTrigger value="events">Eventos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="email">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de análisis de emails
+                </div>
+              </TabsContent>
+              <TabsContent value="social">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de análisis de redes sociales
+                </div>
+              </TabsContent>
+              <TabsContent value="events">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de análisis de eventos
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle>Análisis de Conversión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="funnel">
+              <TabsList>
+                <TabsTrigger value="funnel">Embudo de Conversión</TabsTrigger>
+                <TabsTrigger value="journey">Customer Journey</TabsTrigger>
+                <TabsTrigger value="touchpoints">Puntos de Contacto</TabsTrigger>
+              </TabsList>
+              <TabsContent value="funnel">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de embudo de conversión
+                </div>
+              </TabsContent>
+              <TabsContent value="journey">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de customer journey
+                </div>
+              </TabsContent>
+              <TabsContent value="touchpoints">
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Gráfico de puntos de contacto
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
