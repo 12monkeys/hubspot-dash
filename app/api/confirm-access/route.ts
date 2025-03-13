@@ -1,13 +1,30 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getToken, deleteToken } from "@/lib/tokens";
+import clientPromise from "@/lib/mongodb";
 
 // Indicar que esta ruta es dinámica
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    console.log("Iniciando proceso de confirmación de acceso");
+    console.log("=== Iniciando proceso de confirmación de acceso ===");
+    
+    // Verificar conexión a MongoDB primero
+    try {
+      console.log("Verificando conexión a MongoDB...");
+      const client = await clientPromise;
+      const db = client.db("hubspot-dash");
+      await db.command({ ping: 1 });
+      console.log("Conexión a MongoDB verificada correctamente");
+    } catch (mongoError) {
+      console.error("Error al conectar con MongoDB:", {
+        error: mongoError,
+        stack: mongoError instanceof Error ? mongoError.stack : undefined
+      });
+      throw new Error("No se pudo establecer conexión con la base de datos");
+    }
+
     const { searchParams } = new URL(request.url);
     const email = searchParams.get("email");
     const token = searchParams.get("token");
@@ -88,10 +105,12 @@ export async function GET(request: Request) {
       }
 
       // Eliminar el token usado
+      console.log("Token válido, procediendo a eliminarlo...");
       await deleteToken(email);
       console.log("Token eliminado correctamente");
 
       // Establecer cookie de acceso
+      console.log("Configurando cookie de acceso...");
       const cookieStore = cookies();
       cookieStore.set("dashboard-access", email, {
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
@@ -100,8 +119,10 @@ export async function GET(request: Request) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
       });
+      console.log("Cookie configurada correctamente");
 
       // Redireccionar con mensaje de éxito
+      console.log("Enviando respuesta de éxito...");
       return new Response(
         `<!DOCTYPE html>
         <html lang="es">
@@ -137,7 +158,12 @@ export async function GET(request: Request) {
         }
       );
     } catch (dbError) {
-      console.error("Error al verificar el token:", dbError);
+      console.error("Error detallado al verificar el token:", {
+        error: dbError,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        email,
+        token
+      });
       return new Response(
         `<!DOCTYPE html>
         <html lang="es">
@@ -169,7 +195,10 @@ export async function GET(request: Request) {
       );
     }
   } catch (error) {
-    console.error("Error general en el endpoint de confirmación:", error);
+    console.error("Error general en el endpoint de confirmación:", {
+      error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return new Response(
       `<!DOCTYPE html>
       <html lang="es">
