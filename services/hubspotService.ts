@@ -1,7 +1,6 @@
 import { Client } from '@hubspot/api-client';
 import { Filter, FilterGroup, PublicObjectSearchRequest, FilterOperatorEnum, SimplePublicObjectWithAssociations } from '@hubspot/api-client/lib/codegen/crm/contacts';
 import { Contact, Donation, Campaign } from '../types/hubspot';
-import HubSpotService from "@/services/hubspotService";
 
 interface ObjectSchema {
   name: string;
