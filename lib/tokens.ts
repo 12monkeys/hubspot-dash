@@ -77,6 +77,9 @@ export async function getToken(email: string, token: string): Promise<TokenEntry
     
     if (!entry) {
       console.log("No se encontró token para el email:", email);
+      // Verificar si existe el email sin el token
+      const emailExists = await collection.findOne({ email });
+      console.log("¿Existe el email sin token?:", !!emailExists);
       return null;
     }
     
@@ -89,7 +92,8 @@ export async function getToken(email: string, token: string): Promise<TokenEntry
       tokenExists: !!entry.token,
       expirationDate,
       now,
-      hasExpired: now > expirationDate
+      hasExpired: now > expirationDate,
+      timeUntilExpiration: expirationDate.getTime() - now.getTime()
     });
     
     if (now > expirationDate) {

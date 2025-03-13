@@ -9,18 +9,29 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     console.log("=== Iniciando proceso de confirmación de acceso ===");
+    console.log("URL de la solicitud:", request.url);
     
     // Verificar conexión a MongoDB primero
     try {
       console.log("Verificando conexión a MongoDB...");
+      console.log("MONGODB_URI:", process.env.MONGODB_URI ? "Configurada" : "No configurada");
       const client = await clientPromise;
+      console.log("Cliente MongoDB obtenido");
+      
       const db = client.db("hubspot-dash");
+      console.log("Base de datos seleccionada: hubspot-dash");
+      
       await db.command({ ping: 1 });
       console.log("Conexión a MongoDB verificada correctamente");
       
       // Listar colecciones para diagnóstico
       const collections = await db.listCollections().toArray();
       console.log("Colecciones disponibles:", collections.map(c => c.name));
+      
+      // Verificar la colección de tokens
+      const tokenCollection = db.collection("verification-tokens");
+      const tokenCount = await tokenCollection.countDocuments();
+      console.log("Número de tokens en la base de datos:", tokenCount);
     } catch (mongoError) {
       console.error("Error detallado al conectar con MongoDB:", {
         name: mongoError instanceof Error ? mongoError.name : 'Unknown Error',
@@ -35,7 +46,11 @@ export async function GET(request: Request) {
     const email = searchParams.get("email");
     const token = searchParams.get("token");
 
-    console.log("Parámetros recibidos:", { email, token });
+    console.log("Parámetros recibidos:", { 
+      email, 
+      token,
+      url: request.url
+    });
 
     if (!email || !token) {
       console.log("Error: Email o token faltantes");
@@ -75,7 +90,11 @@ export async function GET(request: Request) {
       console.log("Intentando conectar a la base de datos...");
       
       const isValid = await getToken(email, token);
-      console.log("Resultado de validación de token:", { isValid });
+      console.log("Resultado de validación de token:", { 
+        isValid,
+        email,
+        token
+      });
       
       if (!isValid) {
         console.log("Token inválido o expirado para el email:", email);
@@ -207,7 +226,8 @@ export async function GET(request: Request) {
       name: error instanceof Error ? error.name : 'Unknown Error',
       message: error instanceof Error ? error.message : String(error),
       code: (error as any)?.code,
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      url: request.url
     });
     return new Response(
       `<!DOCTYPE html>
