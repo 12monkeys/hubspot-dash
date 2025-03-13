@@ -20,16 +20,11 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions) {
       console.log('Usando configuración manual de servidor SMTP');
       
       // Determinar el host y puerto basado en el servicio
-      let host = 'smtp.sendgrid.net';
-      let port = 587;
+      let host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+      let port = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 587;
       
-      if (process.env.EMAIL_HOST) {
-        host = process.env.EMAIL_HOST;
-      }
-      
-      if (process.env.EMAIL_PORT) {
-        port = parseInt(process.env.EMAIL_PORT, 10);
-      }
+      // Configuración específica para Gmail
+      const isGmail = host.includes('gmail');
       
       transporter = nodemailer.createTransport({
         host,
@@ -40,7 +35,8 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions) {
           pass: process.env.EMAIL_PASSWORD,
         },
         tls: {
-          rejectUnauthorized: process.env.NODE_ENV === 'production'
+          // Gmail requiere TLS
+          rejectUnauthorized: isGmail ? false : process.env.NODE_ENV === 'production'
         }
       });
     }

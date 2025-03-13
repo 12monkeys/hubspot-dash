@@ -114,6 +114,14 @@ Equipo de Análisis
     // Enviar el correo usando nuestra función mejorada
     try {
       console.log("Intentando enviar correo a:", emailLower);
+      console.log("Configuración de correo:", {
+        server: process.env.EMAIL_SERVER,
+        from: process.env.EMAIL_FROM,
+        user: process.env.EMAIL_USER,
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT
+      });
+      
       await sendEmail({
         to: emailLower,
         subject: "Confirma tu acceso al Dashboard de Inteligencia de Negocio",
@@ -129,7 +137,7 @@ Equipo de Análisis
         server: process.env.EMAIL_SERVER ? "Configurado" : "No configurado",
         from: process.env.EMAIL_FROM ? "Configurado" : "No configurado",
         user: process.env.EMAIL_USER ? "Configurado" : "No configurado",
-        password: process.env.EMAIL_PASSWORD ? "Configurado" : "No configurado",
+        password: process.env.EMAIL_PASSWORD ? "Configurado (longitud: " + (process.env.EMAIL_PASSWORD?.length || 0) + ")" : "No configurado",
         host: process.env.EMAIL_HOST ? "Configurado" : "No configurado",
         port: process.env.EMAIL_PORT ? "Configurado" : "No configurado",
       };

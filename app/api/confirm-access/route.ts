@@ -90,18 +90,8 @@ export async function GET(request: Request) {
       },
     });
     
-    // Establecer cookie de acceso verificado (1 año de duración)
-    const cookieStore = cookies();
-    cookieStore.set("accessVerified", "true", {
-      httpOnly: true,
-      maxAge: 31536000, // 1 año en segundos
-      path: "/",
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-    });
-
-    // Responder con una página de confirmación
-    return new Response(
+    // Crear una respuesta con la cookie
+    const response = new Response(
       `
       <html>
       <head>
@@ -114,6 +104,15 @@ export async function GET(request: Request) {
           .steps { margin: 20px 0; text-align: left; display: inline-block; }
           .step { margin-bottom: 10px; }
         </style>
+        <script>
+          // Script para establecer la cookie en el cliente
+          document.cookie = "accessVerified=true; max-age=31536000; path=/; SameSite=Strict; ${process.env.NODE_ENV === "production" ? "Secure;" : ""}";
+          
+          // Redirigir a la página principal después de 3 segundos
+          setTimeout(function() {
+            window.location.href = "/";
+          }, 3000);
+        </script>
       </head>
       <body>
         <div class="container">
@@ -121,9 +120,8 @@ export async function GET(request: Request) {
           <p>Tu acceso al Dashboard de Inteligencia de Negocio ha sido verificado correctamente.</p>
           
           <div class="steps">
-            <div class="step">1. Cierra esta ventana</div>
-            <div class="step">2. Regresa a la página principal del dashboard</div>
-            <div class="step">3. Recarga la página para acceder al dashboard</div>
+            <div class="step">1. Serás redirigido automáticamente a la página principal en 3 segundos</div>
+            <div class="step">2. Si no eres redirigido, haz clic en el botón de abajo</div>
           </div>
           
           <a href="/" class="button">Ir a la Página Principal</a>
@@ -135,9 +133,12 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           "Content-Type": "text/html",
+          "Set-Cookie": `accessVerified=true; Max-Age=31536000; Path=/; SameSite=Strict; ${process.env.NODE_ENV === "production" ? "Secure;" : ""}`
         },
       }
     );
+
+    return response;
   } catch (error) {
     console.error("Error confirmando acceso:", error);
     return new Response(
