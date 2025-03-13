@@ -12,48 +12,66 @@ export class HubSpotClient {
     }
   }
   
-  async apiRequest({ method = 'GET', path, qs = {}, body = null }) {
+  async apiRequest({ 
+    method = 'GET', 
+    path, 
+    qs = {}, 
+    body = null 
+  }: { 
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    path: string;
+    qs?: Record<string, string | number | boolean>;
+    body?: any;
+  }) {
     try {
       if (!this.apiKey) {
         throw new Error('HubSpot API key no configurada');
       }
-      
-      const url = `${this.baseUrl}${path}`;
-      const headers = {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      };
-      
-      const config = {
-        method,
-        url,
-        headers,
-        params: qs,
-        data: body
-      };
-      
-      const response = await axios(config);
-      return response.data;
-    } catch (error) {
-      if (error.response) {
-        // Error de respuesta de la API de HubSpot
-        console.error(`Error de HubSpot API: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
-        throw new Error(`HubSpot API error: ${error.response.status} - ${error.response.data.message || 'Error desconocido'}`);
-      } else if (error.request) {
-        // No se recibió respuesta
-        console.error('No se recibió respuesta de HubSpot API');
-        throw new Error('No se recibió respuesta de HubSpot API');
-      } else {
-        // Error en la configuración de la petición
-        console.error(`Error al configurar la petición: ${error.message}`);
-        throw error;
+
+      if (!path) {
+        throw new Error('Path is required for HubSpot API request');
       }
+
+      const baseUrl = 'https://api.hubapi.com';
+      const fullPath = path.startsWith('/') ? path : `/${path}`;
+      const urlString = `${baseUrl}${fullPath}`;
+      const url = new URL(urlString);
+
+      Object.entries(qs).forEach(([key, value]) => {
+        url.searchParams.append(key, String(value));
+      });
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HubSpot API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+      }
+
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error en la petición a HubSpot:', error.message);
+      } else {
+        console.error('Error desconocido en la petición a HubSpot:', error);
+      }
+      throw error;
     }
   }
 }
 
 export function createHubSpotClient() {
-  const apiKey = process.env.HUBSPOT_API_KEY;
+  const apiKey = process.env.HUBSPOT_API_KEY || '';
   if (!apiKey) {
     console.warn('ADVERTENCIA: HUBSPOT_API_KEY no está configurada en las variables de entorno');
   }
