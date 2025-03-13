@@ -3,9 +3,9 @@
 import React, { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import KPIOverview from "@/components/dashboard/KPIOverview.tsx";
-import TrendAnalysis from "@/components/dashboard/TrendAnalysis.tsx";
-import Tabs from "@/components/Tabs.tsx";
+import KPIOverview from "@/components/dashboard/KPIOverview";
+import TrendAnalysis from "@/components/dashboard/TrendAnalysis";
+import Tabs from "@/components/Tabs";
  
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -118,4 +118,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
+} 
