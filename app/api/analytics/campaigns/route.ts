@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import HubSpotService from "@/services/hubspotService";
+import HubSpotService from "../../../services/hubspotService";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { analyzeCampaignEffectiveness } from "@/lib/analytics";
+import { authOptions } from "../../../lib/auth";
+import { analyzeCampaignEffectiveness } from "../../../lib/analytics";
 
 export const dynamic = 'force-dynamic';
 

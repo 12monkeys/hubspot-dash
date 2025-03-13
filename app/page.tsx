@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "./lib/auth";
 import LoginForm from './components/auth/LoginForm';
 import MetricasGenerales from './components/MetricasGenerales';
 import DistribucionRegional from './components/DistribucionRegional';

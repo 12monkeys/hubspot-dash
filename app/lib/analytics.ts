@@ -1,4 +1,4 @@
-import HubSpotService from "@/services/hubspotService";
+import HubSpotService from "../../services/hubspotService";
 
 export interface CampaignAnalysis {
   campaignId: string;
@@ -26,13 +26,13 @@ export interface Campaign {
   };
 }
 
-export async function analyzeCampaignEffectiveness(hubspotService: HubSpotService): Promise<CampaignAnalysis[]> {
+export async function analyzeCampaignEffectiveness(hubspotService: any): Promise<CampaignAnalysis[]> {
   try {
     // Obtener datos de campañas de HubSpot
     const campaigns = await hubspotService.getCampaigns();
     
     // Analizar cada campaña
-    const analysisResults = campaigns.map(campaign => {
+    const analysisResults = campaigns.map((campaign: any) => {
       // Calcular métricas
       const metrics = {
         emailsSent: campaign.properties?.hs_audience || 0,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import HubSpotService from "@/services/hubspotService";
+import HubSpotService from "../../../services/hubspotService";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "../../../lib/auth";
 
 export const dynamic = 'force-dynamic';
 
