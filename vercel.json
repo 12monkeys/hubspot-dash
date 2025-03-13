@@ -1,6 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm ci && npm run build",
-  "installCommand": "npm ci",
-  "cleanUrls": true
+  "buildCommand": "npm ci --include=dev && npm run build",
+  "installCommand": "npm ci --include=dev",
+  "cleanUrls": true,
+  "build": {
+    "env": {
+      "DATABASE_URL": "file:./dev.db"
+    }
+  }
 } 
