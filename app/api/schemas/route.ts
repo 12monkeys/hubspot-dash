@@ -18,33 +18,19 @@ export async function GET() {
     }
 
     // Log para depuración
-    console.log(`Attempting to use HubSpot API key (first 4 chars): ${apiKey.substring(0, 4)}...`);
+    console.log('Iniciando obtención de schemas...');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('API Key exists:', Boolean(apiKey));
 
     const hubspotService = new HubSpotService(apiKey);
-    
-    // Probar una llamada simple antes de obtener schemas
-    try {
-      // Intentar obtener solo el endpoint de contactos para probar
-      const contactSchema = await hubspotService.getObjectSchema('contacts');
-      console.log('Successfully fetched contact schema');
-      
-      return NextResponse.json({
-        contactSchema,
-        message: 'Successfully retrieved contact schema'
-      });
-    } catch (schemaError: any) {
-      console.error('Error fetching schema:', schemaError);
-      return NextResponse.json({ 
-        error: 'Error fetching schema',
-        message: schemaError.message,
-        code: schemaError.code || 'UNKNOWN'
-      }, { status: 500 });
-    }
-  } catch (error: any) {
-    console.error('General error in schema endpoint:', error);
+    const schemas = await hubspotService.getAllSchemas();
+
+    return NextResponse.json({ schemas });
+  } catch (error) {
+    console.error('Error al obtener schemas:', error);
     return NextResponse.json({ 
-      error: 'Failed to fetch HubSpot schemas',
-      message: error.message
+      error: 'Error al obtener schemas',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
