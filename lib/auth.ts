@@ -5,7 +5,14 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(clientPromise, {
+    collections: {
+      Users: "users",
+      Accounts: "accounts",
+      Sessions: "sessions",
+      VerificationTokens: "verification-tokens"
+    }
+  }),
   session: {
     strategy: "jwt",
   },

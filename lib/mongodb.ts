@@ -63,6 +63,16 @@ async function connect(): Promise<MongoClient> {
       // Listar colecciones
       const collections = await db.listCollections().toArray();
       console.log("Colecciones disponibles:", collections.map(c => c.name));
+
+      // Crear colecciones necesarias para NextAuth si no existen
+      const requiredCollections = ["users", "accounts", "sessions", "verification-tokens"];
+      for (const collectionName of requiredCollections) {
+        const collectionExists = collections.some(c => c.name === collectionName);
+        if (!collectionExists) {
+          console.log(`Creando colección: ${collectionName}`);
+          await db.createCollection(collectionName);
+        }
+      }
     } catch (dbError) {
       console.error("Error al verificar la base de datos:", dbError);
     }
