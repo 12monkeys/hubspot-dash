@@ -1,8 +1,6 @@
-import NextAuth from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
-
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -27,7 +25,7 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }: { user: any }) { // Añadir tipo para evitar error de TS
+    async signIn({ user }) {
       const email = user.email;
       return email?.endsWith("@sneakerlost.com") || false;
     },
@@ -38,6 +36,3 @@ export const authOptions = {
     error: "/auth/error",
   },
 };
-
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
