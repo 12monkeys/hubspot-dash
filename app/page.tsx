@@ -9,6 +9,9 @@ import LoginForm from './components/auth/LoginForm';
 import KPIOverview from './components/dashboard/KPIOverview';
 import CampaignAnalysis from './components/dashboard/CampaignAnalysis';
 import GeographicDistribution from './components/dashboard/GeographicDistribution';
+import DonationAnalytics from './components/dashboard/DonationAnalytics';
+import CampaignEffectiveness from './components/dashboard/CampaignEffectiveness';
+import RegionalDistribution from './components/dashboard/RegionalDistribution';
 import { DashboardMetrics } from './types/hubspot';
 
 export default function Home() {
@@ -110,6 +113,15 @@ export default function Home() {
       
       <div className="mb-8">
         <KPIOverview />
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <RegionalDistribution />
+        <DonationAnalytics />
+      </div>
+      
+      <div className="mb-8">
+        <CampaignEffectiveness />
       </div>
       
       <div className="mb-8">

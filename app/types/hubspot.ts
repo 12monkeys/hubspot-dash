@@ -11,24 +11,54 @@
     count: number;
     percentage: number;
   }>;
-  metricasCuotas: {
-    cuotaPromedio: number;
-    totalIngresos: number;
-    distribucionCuotas: Array<{
-      cuota: number;
+  cuotaPromedio: number;
+  distribucionCuotas: Array<{
+    rango: string;
+    count: number;
+  }>;
+  ingresoCuotasMensual: number;
+  fuentesAdquisicion: Array<{
+    source: string;
+    count: number;
+  }>;
+  timeSeriesData: Array<{
+    date: string;
+    affiliates: number;
+    sympathizers: number;
+    conversionRate: number;
+    averageQuota: number;
+  }>;
+  comunidadesDistribution: Array<{
+    name: string;
+    value: number;
+    growth: number;
+  }>;
+  tipoAfiliadoDistribution: Array<{
+    name: string;
+    value: number;
+  }>;
+  donationMetrics: {
+    monthlyDonations: Array<{
+      month: string;
+      amount: number;
+    }>;
+    donationDistribution: Array<{
+      range: string;
       count: number;
       percentage: number;
     }>;
+    totalDonors: number;
   };
-  contactosRecientes: Array<{
-    id: string;
-    nombre: string;
-    email: string;
-    telefono: string;
-    region: string;
-    tipo: string;
-    fechaCreacion: string;
-  }>;
+  campaignMetrics: {
+    activeCampaignsCount: number;
+    completedCampaignsCount: number;
+    campaignEffectiveness: Array<{
+      name: string;
+      goal: number;
+      current: number;
+      conversionRate: number;
+    }>;
+  };
 }
 
 export interface Contact {
