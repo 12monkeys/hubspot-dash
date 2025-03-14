@@ -167,33 +167,70 @@ class HubSpotService {
     console.log('Obteniendo resumen de contactos...');
     
     try {
-      // Usar fetch directo en lugar del cliente para probar
-      const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=100', {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Obtener todos los contactos con paginación
+      let allContacts: any[] = [];
+      let hasMore = true;
+      let after = undefined;
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error en respuesta de HubSpot:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
+      while (hasMore) {
+        const url = after 
+          ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}`
+          : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,contactType,region';
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          }
         });
-        throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error en respuesta de HubSpot:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        allContacts = [...allContacts, ...data.results];
+        
+        // Verificar si hay más páginas
+        if (data.paging && data.paging.next && data.paging.next.after) {
+          after = data.paging.next.after;
+        } else {
+          hasMore = false;
+        }
       }
       
-      const data = await response.json();
+      // Calcular métricas reales
+      const totalContacts = allContacts.length;
+      const afiliados = allContacts.filter(c => 
+        c.properties.contactType === 'Afiliado').length;
+      const simpatizantes = allContacts.filter(c => 
+        c.properties.contactType === 'Simpatizante').length;
       
-      // Simplificar para diagnóstico
+      // Calcular distribución regional
+      const regiones: Record<string, number> = {};
+      allContacts.forEach(contact => {
+        const region = contact.properties.region || 'No especificada';
+        regiones[region] = (regiones[region] || 0) + 1;
+      });
+      
+      // Calcular contactos recientes (último mes)
+      const fechaUnMesAtras = new Date();
+      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
+      const recientes = allContacts.filter(c => 
+        new Date(c.properties.createdate) >= fechaUnMesAtras).length;
+      
       const summary: ContactSummary = {
-        total: data.total || data.results.length,
-        afiliados: 0, // Simplificado para diagnóstico
-        simpatizantes: 0, // Simplificado para diagnóstico
-        regiones: {},
-        recientes: 0
+        total: totalContacts,
+        afiliados,
+        simpatizantes,
+        regiones,
+        recientes
       };
 
       this.contactSummaryCache = summary;
@@ -311,20 +348,75 @@ class HubSpotService {
       // Get contact summary
       const contactSummary = await this.getContactSummary();
       
-      // Versión simplificada para diagnóstico
+      // Get donations
+      const donations = await this.getDonations();
+      
+      // Calculate donation metrics
+      const totalDonaciones = donations.length;
+      const donacionesPromedio = totalDonaciones > 0 
+        ? donations.reduce((sum, d) => sum + d.properties.amount, 0) / totalDonaciones 
+        : 0;
+
+      // Calculate monthly growth
+      const fechaUnMesAtras = new Date();
+      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
+      
+      const contactosRecientes = contactSummary.recientes;
+      const crecimientoMensual = contactSummary.total > 0 
+        ? (contactosRecientes / contactSummary.total) * 100 
+        : 0;
+
+      // Transform regional distribution
+      const distribucionRegional = Object.entries(contactSummary.regiones)
+        .map(([region, count]) => ({
+          region,
+          count
+        }));
+
+      // Get active campaigns
+      const campaigns = await this.getCampaigns();
+      const campañasActivas = campaigns.filter(c => 
+        c.properties.hs_campaign_status === 'ACTIVE'
+      ).length;
+
+      // Calculate conversion rate
+      const tasaConversion = contactSummary.total > 0 
+        ? (contactSummary.afiliados / contactSummary.total) * 100 
+        : 0;
+
+      // Calculate quota metrics
+      const cuotaPromedio = donacionesPromedio;
+      const distribucionCuotas = [
+        { rango: '0-100', count: donations.filter(d => d.properties.amount <= 100).length },
+        { rango: '101-500', count: donations.filter(d => d.properties.amount > 100 && d.properties.amount <= 500).length },
+        { rango: '501-1000', count: donations.filter(d => d.properties.amount > 500 && d.properties.amount <= 1000).length },
+        { rango: '1000+', count: donations.filter(d => d.properties.amount > 1000).length }
+      ];
+
+      // Calculate monthly quota income
+      const ingresoCuotasMensual = donations
+        .filter(d => new Date(d.properties.date) >= fechaUnMesAtras)
+        .reduce((sum, d) => sum + d.properties.amount, 0);
+
+      // Get acquisition sources
+      const fuentesAdquisicion = [
+        { source: 'Directo', count: contactSummary.afiliados },
+        { source: 'Indirecto', count: contactSummary.simpatizantes }
+      ];
+
       return {
-        totalAfiliados: contactSummary.total,
-        totalSimpatizantes: 0,
-        totalDonaciones: 0,
-        donacionesPromedio: 0,
-        crecimientoMensual: 0,
-        distribucionRegional: [],
-        campañasActivas: 0,
-        tasaConversion: 0,
-        cuotaPromedio: 0,
-        distribucionCuotas: [],
-        ingresoCuotasMensual: 0,
-        fuentesAdquisicion: []
+        totalAfiliados: contactSummary.afiliados,
+        totalSimpatizantes: contactSummary.simpatizantes,
+        totalDonaciones,
+        donacionesPromedio,
+        crecimientoMensual,
+        distribucionRegional,
+        campañasActivas,
+        tasaConversion,
+        cuotaPromedio,
+        distribucionCuotas,
+        ingresoCuotasMensual,
+        fuentesAdquisicion
       };
     } catch (error) {
       console.error('Error getting dashboard metrics:', error);
