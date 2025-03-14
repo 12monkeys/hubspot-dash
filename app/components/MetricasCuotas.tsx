@@ -12,8 +12,8 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const MetricasCuotas = ({ metrics }: MetricasCuotasProps) => {
   // Transform data for pie chart
-  const pieData = metrics.distribucionCuotas.map(item => ({
-    name: item.rango,
+  const pieData = metrics.metricasCuotas.distribucionCuotas.map(item => ({
+    name: `${item.cuota}€`,
     value: item.count
   }));
 
@@ -28,7 +28,7 @@ const MetricasCuotas = ({ metrics }: MetricasCuotasProps) => {
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-500">Cuota Promedio</h3>
               <p className="mt-1 text-2xl font-semibold">
-                {metrics.cuotaPromedio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                {metrics.metricasCuotas.cuotaPromedio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
               </p>
               <p className="text-xs text-gray-500">Por afiliado</p>
             </div>
@@ -36,7 +36,7 @@ const MetricasCuotas = ({ metrics }: MetricasCuotasProps) => {
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-500">Ingreso Mensual Estimado</h3>
               <p className="mt-1 text-2xl font-semibold">
-                {metrics.ingresoCuotasMensual.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                {metrics.metricasCuotas.totalIngresos.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
               </p>
               <p className="text-xs text-gray-500">Por cuotas de afiliados</p>
             </div>
@@ -44,7 +44,7 @@ const MetricasCuotas = ({ metrics }: MetricasCuotasProps) => {
             <div className="bg-purple-50 p-4 rounded-lg">
               <h3 className="text-sm font-medium text-gray-500">Proyección Anual</h3>
               <p className="mt-1 text-2xl font-semibold">
-                {(metrics.ingresoCuotasMensual * 12).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                {(metrics.metricasCuotas.totalIngresos * 12).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
               </p>
               <p className="text-xs text-gray-500">Ingresos anuales por cuotas</p>
             </div>
@@ -56,11 +56,11 @@ const MetricasCuotas = ({ metrics }: MetricasCuotasProps) => {
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={metrics.distribucionCuotas}
+                    data={metrics.metricasCuotas.distribucionCuotas}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="rango" />
+                    <XAxis dataKey="cuota" tickFormatter={(value) => `${value}€`} />
                     <YAxis />
                     <Tooltip formatter={(value) => [value, 'Afiliados']} />
                     <Legend />
