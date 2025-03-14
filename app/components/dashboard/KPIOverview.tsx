@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
-import { 
+import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
@@ -124,13 +123,11 @@ export default function KPIOverview() {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array(8).fill(0).map((_, index) => (
-          <Card key={index} className="shadow-sm">
-            <CardContent className="p-6">
-              <div className="h-16 flex items-center justify-center">
-                <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={index} className="bg-white p-4 rounded-lg shadow">
+            <div className="h-16 flex items-center justify-center">
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -180,109 +177,109 @@ export default function KPIOverview() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpiItems.map((item, index) => (
-          <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{item.title}</p>
-                  <p className="mt-1 text-2xl font-bold">{item.value}</p>
-                  {item.change !== null && (
-                    <p className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
-                      {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(1)}%
-                    </p>
-                  )}
-                </div>
-                <div className="text-3xl bg-blue-50 p-3 rounded-full">{item.icon}</div>
+          <div key={index} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">{item.title}</p>
+                <p className="mt-1 text-2xl font-bold">{item.value}</p>
+                {item.change !== null && (
+                  <p className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
+                    {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(1)}%
+                  </p>
+                )}
               </div>
-              <div className="h-20 mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={item.trend}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <Tooltip 
-                      formatter={(value) => [
-                        typeof value === 'number' ? value.toLocaleString() : value,
-                        item.title
-                      ]}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#8884d8" 
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+              <div className="text-3xl bg-blue-50 p-3 rounded-full">{item.icon}</div>
+            </div>
+            <div className="h-20 mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={item.trend}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <Tooltip 
+                    formatter={(value) => [
+                      typeof value === 'number' ? value.toLocaleString() : value,
+                      item.title
+                    ]}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#8884d8" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         ))}
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Distribución Regional</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={metrics.regionDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="count"
-                    nameKey="region"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {metrics.regionDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value, name, props) => [
-                      `${value.toLocaleString()} (${(props.payload.percentage * 100).toFixed(1)}%)`,
-                      props.payload.region
-                    ]}
-                  />
-                  <Legend layout="vertical" verticalAlign="middle" align="right" />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Distribución Regional</h3>
+          <div className="h-80 bg-white p-4 rounded-lg shadow">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={metrics.regionDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="count"
+                  nameKey="region"
+                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {metrics.regionDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    if (props && props.payload && typeof value === 'number') {
+                      return [
+                        `${value.toLocaleString()} (${(props.payload.percentage * 100).toFixed(1)}%)`,
+                        props.payload.region
+                      ];
+                    }
+                    return [value, name];
+                  }}
+                />
+                <Legend layout="vertical" verticalAlign="middle" align="right" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Distribución de Cuotas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.quotaDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="quota" label={{ value: 'Cuota (€)', position: 'insideBottom', offset: -5 }} />
-                  <YAxis label={{ value: 'Número de Afiliados', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip 
-                    formatter={(value, name, props) => [
-                      `${value.toLocaleString()} afiliados (${(props.payload.percentage * 100).toFixed(1)}%)`,
-                      "Afiliados"
-                    ]}
-                  />
-                  <Legend />
-                  <Bar dataKey="count" name="Afiliados" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Distribución de Cuotas</h3>
+          <div className="h-80 bg-white p-4 rounded-lg shadow">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={metrics.quotaDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="quota" label={{ value: 'Cuota (€)', position: 'insideBottom', offset: -5 }} />
+                <YAxis label={{ value: 'Número de Afiliados', angle: -90, position: 'insideLeft' }} />
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    if (props && props.payload && typeof value === 'number') {
+                      return [
+                        `${value.toLocaleString()} afiliados (${(props.payload.percentage * 100).toFixed(1)}%)`,
+                        "Afiliados"
+                      ];
+                    }
+                    return [value, name];
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="count" name="Afiliados" fill="#8884d8" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </div>
   );

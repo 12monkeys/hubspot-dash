@@ -106,12 +106,12 @@ export default function Home() {
 
   // Mostrar el dashboard
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard Político</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Político</h1>
             {userEmail && (
               <div className="text-sm text-gray-600 flex items-center">
                 <span className="mr-2">Usuario: {userEmail}</span>
@@ -125,32 +125,38 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* KPI Overview */}
-        <section className="mb-8">
-          <KPIOverview />
+        <section className="mb-10">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Resumen de KPIs</h2>
+            <KPIOverview />
+          </div>
         </section>
 
         {/* Regional Distribution and Donation Analytics */}
-        <section className="mb-8">
+        <section className="mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Distribución Regional</h2>
               <RegionalDistribution />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Análisis de Donaciones</h2>
               <DonationAnalytics />
             </div>
           </div>
         </section>
 
         {/* Campaign Effectiveness */}
-        <section className="mb-8">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <section className="mb-10">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Efectividad de Campañas</h2>
             <CampaignEffectiveness />
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-4">
+      <footer className="bg-white border-t border-gray-200 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500">
             © {new Date().getFullYear()} Dashboard Político - Todos los derechos reservados

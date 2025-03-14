@@ -48,7 +48,7 @@ export default function RegionalDistribution() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"affiliates" | "percentage">("affiliates");
-  const [showCount, setShowCount] = useState(5);
+  const [showCount, setShowCount] = useState(10);
 
   useEffect(() => {
     // En desarrollo, usamos datos simulados
@@ -85,13 +85,9 @@ export default function RegionalDistribution() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
-            <div className="h-64 flex items-center justify-center">
-              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="h-64 flex items-center justify-center">
+          <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+        </div>
       </div>
     );
   }
@@ -128,16 +124,15 @@ export default function RegionalDistribution() {
   return (
     <div className="space-y-6">
       {/* Header con controles */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold">Distribución Regional</h2>
           <p className="text-sm text-gray-500">
             {metrics.totalRegions} regiones en total, {metrics.topRegion} es la región principal ({formatPercentage(metrics.topRegionPercentage)})
           </p>
         </div>
         <div className="flex gap-4">
           <select 
-            className="px-3 py-2 border rounded-md text-sm"
+            className="px-3 py-2 border rounded-md text-sm bg-white"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "affiliates" | "percentage")}
           >
@@ -145,7 +140,7 @@ export default function RegionalDistribution() {
             <option value="percentage">Ordenar por porcentaje</option>
           </select>
           <select 
-            className="px-3 py-2 border rounded-md text-sm"
+            className="px-3 py-2 border rounded-md text-sm bg-white"
             value={showCount}
             onChange={(e) => setShowCount(Number(e.target.value))}
           >
@@ -158,106 +153,96 @@ export default function RegionalDistribution() {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Distribución de Afiliados por Región</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={sortedData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  layout="vertical"
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" />
-                  <YAxis 
-                    dataKey="region" 
-                    type="category" 
-                    width={100}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => {
-                      if (typeof value === 'number') {
-                        return [formatNumber(value), "Afiliados"];
-                      }
-                      return [value, "Afiliados"];
-                    }}
-                  />
-                  <Legend />
-                  <Bar 
-                    dataKey="affiliates" 
-                    name="Afiliados" 
-                    fill="#8884d8" 
-                    radius={[0, 4, 4, 0]}
-                  />
-                  <Bar 
-                    dataKey="sympathizers" 
-                    name="Simpatizantes" 
-                    fill="#82ca9d" 
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Distribución de Afiliados por Región</h3>
+          <div className="h-80 bg-white p-4 rounded-lg shadow">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={sortedData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                layout="vertical"
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <XAxis type="number" />
+                <YAxis 
+                  dataKey="region" 
+                  type="category" 
+                  width={100}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip 
+                  formatter={(value) => {
+                    if (typeof value === 'number') {
+                      return [formatNumber(value), "Afiliados"];
+                    }
+                    return [value, "Afiliados"];
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="affiliates" 
+                  name="Afiliados" 
+                  fill="#8884d8" 
+                  radius={[0, 4, 4, 0]}
+                />
+                <Bar 
+                  dataKey="sympathizers" 
+                  name="Simpatizantes" 
+                  fill="#82ca9d" 
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Porcentaje por Región</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={sortedData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="affiliates"
-                    nameKey="region"
-                    label={({name, percent}) => {
-                      if (typeof percent === 'number') {
-                        return `${name}: ${(percent * 100).toFixed(0)}%`;
-                      }
-                      return `${name}`;
-                    }}
-                  >
-                    {sortedData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value, name, props) => {
-                      if (props && props.payload) {
-                        return [
-                          `${formatNumber(value as number)} (${formatPercentage(props.payload.percentage)})`,
-                          props.payload.region
-                        ];
-                      }
-                      return [value, name];
-                    }}
-                  />
-                  <Legend layout="vertical" verticalAlign="middle" align="right" />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Porcentaje por Región</h3>
+          <div className="h-80 bg-white p-4 rounded-lg shadow">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={sortedData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="affiliates"
+                  nameKey="region"
+                  label={({name, percent}) => {
+                    if (typeof percent === 'number') {
+                      return `${name}: ${(percent * 100).toFixed(0)}%`;
+                    }
+                    return `${name}`;
+                  }}
+                >
+                  {sortedData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    if (props && props.payload) {
+                      return [
+                        `${formatNumber(value as number)} (${formatPercentage(props.payload.percentage)})`,
+                        props.payload.region
+                      ];
+                    }
+                    return [value, name];
+                  }}
+                />
+                <Legend layout="vertical" verticalAlign="middle" align="right" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Tabla de datos */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Detalle por Región</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Detalle por Región</h3>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -296,8 +281,8 @@ export default function RegionalDistribution() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 } 
