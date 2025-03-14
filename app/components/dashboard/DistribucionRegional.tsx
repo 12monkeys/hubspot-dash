@@ -1,21 +1,23 @@
-﻿"use client";
+"use client";
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
-import { DashboardMetrics } from '../types/hubspot';
+import { 
+  Cell, PieChart, Pie, Tooltip, Legend, ResponsiveContainer
+} from "recharts";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
+import { Campaign } from "../../types/campaign";
 
 interface DistribucionRegionalProps {
-  distribucion: DashboardMetrics['distribucionRegional'];
+  distribucion: Campaign['regionDistribution'];
 }
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const DistribucionRegional = ({ distribucion }: DistribucionRegionalProps) => {
   // Transform data for the pie chart
-  const chartData = distribucion.map(({ region, count }) => ({
+  const chartData = distribucion.map(({ region, count }: { region: string; count: number }) => ({
     name: region,
     value: count
   }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
     <Card className="shadow-lg">
@@ -35,9 +37,9 @@ const DistribucionRegional = ({ distribucion }: DistribucionRegionalProps) => {
                 fill="#8884d8"
                 dataKey="value"
                 nameKey="name"
-                label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({name, percent}: {name: string; percent: number}) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
-                {chartData.map((entry, index) => (
+                {chartData.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -51,4 +53,4 @@ const DistribucionRegional = ({ distribucion }: DistribucionRegionalProps) => {
   );
 };
 
-export default DistribucionRegional;
+export default DistribucionRegional; 
