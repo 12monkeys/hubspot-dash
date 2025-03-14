@@ -138,8 +138,12 @@ class HubSpotService {
   private contactSummaryCacheTime: number = 0;
   private readonly CACHE_TTL = 3600000; // 1 hora en milisegundos
   private schemaCache: Map<string, ObjectSchema> = new Map();
+  private accessToken: string;
 
   constructor(accessToken: string) {
+    // Store the token for direct use
+    this.accessToken = accessToken;
+    
     // Asegurarse de que el token comienza con 'pat-' para tokens de acceso privado
     if (!accessToken.startsWith('pat-')) {
       console.warn('El token de acceso no tiene el formato esperado (pat-...)');
@@ -166,7 +170,7 @@ class HubSpotService {
       // Usar fetch directo en lugar del cliente para probar
       const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=100', {
         headers: {
-          'Authorization': `Bearer ${this.client.accessToken}`,
+          'Authorization': `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json'
         }
       });
