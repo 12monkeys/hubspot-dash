@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const hubspotApiKey = process.env.HUBSPOT_API_KEY;
+    const hubspotApiKey = process.env.HUBSPOT_ACCESS_TOKEN;
     
     if (!hubspotApiKey) {
       return NextResponse.json({ error: 'API Key no configurada' }, { status: 500 });
