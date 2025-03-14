@@ -6,6 +6,8 @@ import {
   Cell, PieChart, Pie
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
+import TestChart from "../components/dashboard/TestChart";
+import { DashboardMetrics } from '../types/hubspot';
 
 type Campaign = {
   name: string;
@@ -59,6 +61,53 @@ interface RegionalMetrics {
   growth: number;
   potential: number;
 }
+
+interface DistribucionRegionalProps {
+  distribucion: DashboardMetrics['distribucionRegional'];
+}
+
+const DistribucionRegional = ({ distribucion }: DistribucionRegionalProps) => {
+  // Transform data for the pie chart
+  const chartData = distribucion.map(({ region, count }) => ({
+    name: region,
+    value: count
+  }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  return (
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle>Distribución Regional</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                nameKey="name"
+                label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => [value, 'Contactos']} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function CampaignAnalysis() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -181,28 +230,7 @@ export default function CampaignAnalysis() {
           </CardHeader>
           <CardContent>
             {selectedCampaign && selectedCampaign.regionDistribution ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={selectedCampaign.regionDistribution.slice(0, 5)}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
-                    nameKey="region"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {selectedCampaign.regionDistribution.slice(0, 5).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value, name, props) => [value, props.payload.region]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <DistribucionRegional distribucion={selectedCampaign.regionDistribution} />
             ) : (
               <div className="h-72 flex items-center justify-center">
                 <span className="text-gray-500">Seleccione una campaña para ver su distribución regional</span>
@@ -354,6 +382,10 @@ export default function CampaignAnalysis() {
             </CardContent>
           </Card>
         ))}
+      </div>
+      
+      <div className="mb-8">
+        <TestChart />
       </div>
     </div>
   );
