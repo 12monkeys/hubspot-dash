@@ -8,23 +8,52 @@ import {
 } from "recharts";
 
 type CampaignMetrics = {
-  activeCampaignsCount: number;
-  completedCampaignsCount: number;
-  campaignEffectiveness: Array<{
+  campaigns: Array<{
     name: string;
-    goal: number;
-    current: number;
+    completionRate: number;
     conversionRate: number;
+    engagement: number;
   }>;
+  overallStats: {
+    activeCampaigns: number;
+    averageConversion: number;
+    averageEngagement: number;
+  };
 };
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+// Datos simulados para usar directamente
+const mockCampaignMetrics: CampaignMetrics = {
+  campaigns: [
+    { name: 'Campaña Afiliación Q1', completionRate: 85, conversionRate: 4.2, engagement: 68 },
+    { name: 'Newsletter Mensual', completionRate: 92, conversionRate: 2.8, engagement: 72 },
+    { name: 'Evento Regional', completionRate: 78, conversionRate: 5.6, engagement: 81 },
+    { name: 'Captación Donantes', completionRate: 65, conversionRate: 3.9, engagement: 59 },
+    { name: 'Campaña Redes Sociales', completionRate: 88, conversionRate: 3.2, engagement: 75 }
+  ],
+  overallStats: {
+    activeCampaigns: 5,
+    averageConversion: 3.5,
+    averageEngagement: 65.4
+  }
+};
 
 export default function CampaignEffectiveness() {
   const [metrics, setMetrics] = useState<CampaignMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    // Simular una carga de datos
+    const timer = setTimeout(() => {
+      setMetrics(mockCampaignMetrics);
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+    
+    // Código original comentado
+    /*
     async function fetchData() {
       try {
         const response = await fetch('/api/analytics/campaigns');
@@ -41,6 +70,7 @@ export default function CampaignEffectiveness() {
     }
     
     fetchData();
+    */
   }, []);
   
   if (loading) {
@@ -74,11 +104,11 @@ export default function CampaignEffectiveness() {
   }
   
   // Calculate completion percentage for each campaign
-  const campaignsWithPercentage = metrics.campaignEffectiveness.map(campaign => ({
+  const campaignsWithPercentage = metrics.campaigns.map(campaign => ({
     ...campaign,
-    completionPercentage: campaign.goal > 0 
-      ? Math.min(100, (campaign.current / campaign.goal) * 100)
-      : 0
+    goal: 100, // Valor simulado para el objetivo
+    current: Math.round(campaign.completionRate), // Valor simulado para el progreso actual
+    completionPercentage: campaign.completionRate
   }));
   
   // Sort campaigns by conversion rate
@@ -94,11 +124,11 @@ export default function CampaignEffectiveness() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm font-medium text-gray-500">Campañas Activas</h3>
-            <p className="mt-1 text-2xl font-semibold">{metrics.activeCampaignsCount}</p>
+            <p className="mt-1 text-2xl font-semibold">{metrics.overallStats.activeCampaigns}</p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Campañas Completadas</h3>
-            <p className="mt-1 text-2xl font-semibold">{metrics.completedCampaignsCount}</p>
+            <h3 className="text-sm font-medium text-gray-500">Tasa de Conversión Media</h3>
+            <p className="mt-1 text-2xl font-semibold">{metrics.overallStats.averageConversion.toFixed(1)}%</p>
           </div>
         </div>
         

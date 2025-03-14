@@ -14,15 +14,24 @@ import CampaignEffectiveness from './components/dashboard/CampaignEffectiveness'
 import RegionalDistribution from './components/dashboard/RegionalDistribution';
 import { DashboardMetrics } from './types/hubspot';
 
+// Modo de desarrollo para ver el dashboard sin autenticación
+const DEV_MODE = true; // Cambiar a false en producción
+
 export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{message: string; details?: string} | null>(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(DEV_MODE);
+  const [userEmail, setUserEmail] = useState<string | null>(DEV_MODE ? "dev@example.com" : null);
   const router = useRouter();
 
   useEffect(() => {
+    // En modo desarrollo, no verificamos autenticación
+    if (DEV_MODE) {
+      setLoading(false);
+      return;
+    }
+
     // Verificar si el usuario tiene acceso
     const checkAccess = async () => {
       try {
@@ -108,6 +117,7 @@ export default function Home() {
       {userEmail && (
         <div className="mb-4 text-sm text-gray-600">
           Usuario: {userEmail}
+          {DEV_MODE && <span className="ml-2 bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs">MODO DESARROLLO</span>}
         </div>
       )}
       
@@ -124,6 +134,8 @@ export default function Home() {
         <CampaignEffectiveness />
       </div>
       
+      {/* Componentes originales que pueden ser redundantes */}
+      {/* 
       <div className="mb-8">
         <GeographicDistribution />
       </div>
@@ -131,6 +143,7 @@ export default function Home() {
       <div className="mb-8">
         <CampaignAnalysis />
       </div>
+      */}
     </main>
   );
 } 

@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    if (!process.env.HUBSPOT_API_KEY) {
+    if (!process.env.HUBSPOT_ACCESS_TOKEN) {
       return NextResponse.json({ error: 'HubSpot API key not configured' }, { status: 500 });
     }
 
-    const hubspotService = new HubSpotService(process.env.HUBSPOT_API_KEY);
+    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN);
     
     // Analizar las métricas disponibles y generar recomendaciones
     const recommendations = await hubspotService.analyzeAvailableMetrics();

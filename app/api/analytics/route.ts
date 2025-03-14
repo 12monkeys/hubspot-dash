@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const hubspotApiKey = process.env.HUBSPOT_API_KEY;
+    const hubspotApiKey = process.env.HUBSPOT_ACCESS_TOKEN;
     
     if (!hubspotApiKey) {
-      console.error('HUBSPOT_API_KEY no está configurada');
-      throw new Error('HUBSPOT_API_KEY no está configurada');
+      console.error('HUBSPOT_ACCESS_TOKEN no está configurada');
+      throw new Error('HUBSPOT_ACCESS_TOKEN no está configurada');
     }
 
     // Log del token (solo los primeros 5 caracteres por seguridad)

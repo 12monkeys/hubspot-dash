@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     // Verificar si la clave API existe
-    const apiKey = process.env.HUBSPOT_API_KEY;
+    const apiKey = process.env.HUBSPOT_ACCESS_TOKEN;
     
     if (!apiKey) {
       console.error('HubSpot API key is missing from environment variables');

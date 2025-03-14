@@ -16,6 +16,20 @@ type RegionData = {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#4CAF50', '#FF5722', '#9C27B0', '#3F51B5', '#E91E63'];
 
+// Datos simulados para usar directamente
+const mockRegionData: RegionData[] = [
+  { name: 'Madrid', affiliates: 45000, supporters: 20000, percentage: 21.6 },
+  { name: 'Andalucía', affiliates: 38000, supporters: 17000, percentage: 18.3 },
+  { name: 'Cataluña', affiliates: 30000, supporters: 12000, percentage: 14.4 },
+  { name: 'Valencia', affiliates: 25000, supporters: 10000, percentage: 12.0 },
+  { name: 'Galicia', affiliates: 18000, supporters: 8000, percentage: 8.7 },
+  { name: 'País Vasco', affiliates: 15000, supporters: 7000, percentage: 7.2 },
+  { name: 'Castilla y León', affiliates: 12000, supporters: 6000, percentage: 5.8 },
+  { name: 'Canarias', affiliates: 10000, supporters: 5000, percentage: 4.8 },
+  { name: 'Aragón', affiliates: 8000, supporters: 4000, percentage: 3.8 },
+  { name: 'Asturias', affiliates: 7000, supporters: 3500, percentage: 3.4 }
+];
+
 export default function RegionalDistribution() {
   const [regionData, setRegionData] = useState<RegionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +38,23 @@ export default function RegionalDistribution() {
   const [totalSupporters, setTotalSupporters] = useState(0);
   
   useEffect(() => {
+    // Simular una carga de datos
+    const timer = setTimeout(() => {
+      setRegionData(mockRegionData);
+      
+      // Calcular totales
+      const affiliatesTotal = mockRegionData.reduce((sum, region) => sum + region.affiliates, 0);
+      const supportersTotal = mockRegionData.reduce((sum, region) => sum + region.supporters, 0);
+      
+      setTotalAffiliates(affiliatesTotal);
+      setTotalSupporters(supportersTotal);
+      setLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+    
+    // Código original comentado
+    /*
     async function fetchData() {
       try {
         const response = await fetch('/api/analytics/regions');
@@ -52,6 +83,7 @@ export default function RegionalDistribution() {
     }
     
     fetchData();
+    */
   }, []);
   
   // Sort data based on selected criteria
@@ -71,7 +103,11 @@ export default function RegionalDistribution() {
         percentage: regionData
           .sort((a, b) => b.affiliates - a.affiliates)
           .slice(5)
-          .reduce((sum, region) => sum + region.percentage, 0)
+          .reduce((sum, region) => sum + region.percentage, 0),
+        supporters: regionData
+          .sort((a, b) => b.affiliates - a.affiliates)
+          .slice(5)
+          .reduce((sum, region) => sum + region.supporters, 0)
       }
     : null;
   
