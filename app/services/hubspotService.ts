@@ -264,7 +264,9 @@ class HubSpotService {
           console.error('Error de permisos al obtener donaciones. Se requieren los scopes: crm.objects.custom.read, crm.schemas.custom.read');
           return [];
         }
-        throw error;
+        // Registrar el error completo para diagnóstico
+        console.error('Error completo al buscar donaciones:', error);
+        return [];
       }
       
       // Si hay donaciones, obtenemos una muestra para análisis
@@ -278,20 +280,25 @@ class HubSpotService {
         sorts: ['createdate']
       });
 
-      const response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
-      
-      if (!response.results || response.results.length === 0) {
-        console.log('No se encontraron donaciones en la muestra');
+      try {
+        const response = await this.client.crm.objects.searchApi.doSearch('2-134403413', searchRequest);
+        
+        if (!response.results || response.results.length === 0) {
+          console.log('No se encontraron donaciones en la muestra');
+          return [];
+        }
+
+        return response.results.map(donation => ({
+          id: donation.id,
+          properties: {
+            amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
+            date: donation.properties.createdate || new Date().toISOString(),
+          }
+        }));
+      } catch (searchError) {
+        console.error('Error al buscar donaciones:', searchError);
         return [];
       }
-
-      return response.results.map(donation => ({
-        id: donation.id,
-        properties: {
-          amount: donation.properties.importe ? Number(donation.properties.importe) : 0,
-          date: donation.properties.createdate || new Date().toISOString(),
-        }
-      }));
     } catch (error) {
       console.error('Error al obtener donaciones:', error);
       return [];
@@ -335,8 +342,17 @@ class HubSpotService {
         path: '/crm/v3/objects/campaigns',
       });
       
-      const data = await response.json();
-      return data.results || [];
+      // Verificar si la respuesta es válida antes de intentar parsearla
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        return data.results || [];
+      } else {
+        // Si no es JSON, leer como texto para diagnóstico
+        const textResponse = await response.text();
+        console.error('Respuesta no-JSON de la API de campañas:', textResponse);
+        return [];
+      }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       return [];
@@ -348,8 +364,23 @@ class HubSpotService {
       // Get contact summary
       const contactSummary = await this.getContactSummary();
       
-      // Get donations
-      const donations = await this.getDonations();
+      // Get donations - Añadir manejo de errores específico
+      let donations: Donation[] = [];
+      try {
+        donations = await this.getDonations();
+      } catch (donationError) {
+        console.error('Error al obtener donaciones:', donationError);
+        // Continuar con un array vacío en lugar de fallar completamente
+      }
+      
+      // Get campaigns - Añadir manejo de errores específico
+      let campaigns: Workflow[] = [];
+      try {
+        campaigns = await this.getCampaigns();
+      } catch (campaignError) {
+        console.error('Error al obtener campañas:', campaignError);
+        // Continuar con un array vacío
+      }
       
       // Calculate donation metrics
       const totalDonaciones = donations.length;
@@ -374,7 +405,6 @@ class HubSpotService {
         }));
 
       // Get active campaigns
-      const campaigns = await this.getCampaigns();
       const campañasActivas = campaigns.filter(c => 
         c.properties.hs_campaign_status === 'ACTIVE'
       ).length;
@@ -420,6 +450,11 @@ class HubSpotService {
       };
     } catch (error) {
       console.error('Error getting dashboard metrics:', error);
+      // Registrar más detalles sobre el error
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       throw error;
     }
   }

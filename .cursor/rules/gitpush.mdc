@@ -1,0 +1,6 @@
+---
+description: GIT
+globs: 
+alwaysApply: false
+---
+Siempre que hagas cambios haz el proceso completo de GIt add, push y commit
