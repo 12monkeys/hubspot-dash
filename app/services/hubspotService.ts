@@ -183,9 +183,10 @@ class HubSpotService {
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
         
         try {
+          // Incluir relacion_con_vox en las propiedades solicitadas
           const url: string = after 
-            ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}&properties=createdate,email,firstname,lastname,contactType,region`
-            : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,contactType,region';
+            ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}&properties=createdate,email,firstname,lastname,relacion_con_vox,region`
+            : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,relacion_con_vox,region';
           
           const response = await fetch(url, {
             headers: {
@@ -208,6 +209,12 @@ class HubSpotService {
           }
           
           const data = await response.json();
+          
+          // Imprimir las propiedades del primer contacto para diagnóstico
+          if (pageCount === 1 && data.results && data.results.length > 0) {
+            console.log('Ejemplo de propiedades de contacto:', data.results[0].properties);
+          }
+          
           allContacts = [...allContacts, ...data.results];
           console.log(`Obtenidos ${data.results.length} contactos en la página ${pageCount}`);
           
@@ -235,10 +242,11 @@ class HubSpotService {
       const totalContacts = allContacts.length;
       console.log(`Total de contactos procesados: ${totalContacts}`);
       
+      // Usar relacion_con_vox en lugar de contactType
       const afiliados = allContacts.filter(c => 
-        c.properties.contactType === 'Afiliado').length;
+        c.properties.relacion_con_vox === 'Afiliado').length;
       const simpatizantes = allContacts.filter(c => 
-        c.properties.contactType === 'Simpatizante').length;
+        c.properties.relacion_con_vox === 'Simpatizante').length;
       
       // Calcular distribución regional
       const regiones: Record<string, number> = {};
@@ -458,8 +466,8 @@ class HubSpotService {
 
       // Get acquisition sources
       const fuentesAdquisicion = [
-        { source: 'Directo', count: contactSummary.afiliados },
-        { source: 'Indirecto', count: contactSummary.simpatizantes }
+        { source: 'Afiliado', count: contactSummary.afiliados },
+        { source: 'Simpatizante', count: contactSummary.simpatizantes }
       ];
 
       return {
