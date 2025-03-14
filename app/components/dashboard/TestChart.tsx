@@ -1,33 +1,38 @@
-"use client";
+﻿"use client";
 
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function TestChart() {
-  // Static data that doesn't require any API calls
+  // Sample static data
   const data = [
-    { name: "Jan", value: 400 },
-    { name: "Feb", value: 300 },
-    { name: "Mar", value: 200 },
-    { name: "Apr", value: 278 },
-    { name: "May", value: 189 },
+    { name: 'Enero', afiliados: 400, simpatizantes: 240 },
+    { name: 'Febrero', afiliados: 300, simpatizantes: 139 },
+    { name: 'Marzo', afiliados: 200, simpatizantes: 980 },
+    { name: 'Abril', afiliados: 278, simpatizantes: 390 },
+    { name: 'Mayo', afiliados: 189, simpatizantes: 480 },
+    { name: 'Junio', afiliados: 239, simpatizantes: 380 },
   ];
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle>Test Chart</CardTitle>
+        <CardTitle>Test Chart - Afiliados vs Simpatizantes</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
+            <BarChart
+              data={data}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" fill="#8884d8" />
+              <Bar dataKey="afiliados" fill="#8884d8" name="Afiliados" />
+              <Bar dataKey="simpatizantes" fill="#82ca9d" name="Simpatizantes" />
             </BarChart>
           </ResponsiveContainer>
         </div>
