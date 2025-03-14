@@ -2,217 +2,307 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
 
-type DonationMetrics = {
-  monthlyDonations: Array<{
-    month: string;
-    amount: number;
-  }>;
-  donationDistribution: Array<{
-    range: string;
-    count: number;
-    percentage: number;
-  }>;
-  totalDonors: number;
+type DonationData = {
+  month: string;
+  amount: number;
+  count: number;
+  average: number;
 };
 
+type DonationsByType = {
+  type: string;
+  amount: number;
+  percentage: number;
+};
+
+type DonationMetrics = {
+  totalDonations: number;
+  totalAmount: number;
+  averageDonation: number;
+  donationGrowth: number;
+  monthlyData: DonationData[];
+  donationsByType: DonationsByType[];
+};
+
+// Colores para los gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-// Datos simulados para usar directamente
+// Datos simulados para desarrollo
 const mockDonationMetrics: DonationMetrics = {
-  monthlyDonations: [
-    { month: '2023-01', amount: 5000 },
-    { month: '2023-02', amount: 5500 },
-    { month: '2023-03', amount: 6200 },
-    { month: '2023-04', amount: 7000 },
-    { month: '2023-05', amount: 7500 },
-    { month: '2023-06', amount: 8000 }
+  totalDonations: 3245,
+  totalAmount: 78650.25,
+  averageDonation: 24.24,
+  donationGrowth: 8.7,
+  monthlyData: [
+    { month: "Ene", amount: 10250.50, count: 425, average: 24.12 },
+    { month: "Feb", amount: 11320.75, count: 468, average: 24.19 },
+    { month: "Mar", amount: 12450.30, count: 512, average: 24.32 },
+    { month: "Abr", amount: 13580.45, count: 560, average: 24.25 },
+    { month: "May", amount: 14780.25, count: 610, average: 24.23 },
+    { month: "Jun", amount: 16268.00, count: 670, average: 24.28 }
   ],
-  donationDistribution: [
-    { range: '0-50€', count: 120, percentage: 40 },
-    { range: '51-100€', count: 80, percentage: 26.7 },
-    { range: '101-200€', count: 60, percentage: 20 },
-    { range: '201-500€', count: 30, percentage: 10 },
-    { range: '500+€', count: 10, percentage: 3.3 }
-  ],
-  totalDonors: 300
+  donationsByType: [
+    { type: "Recurrente", amount: 45320.15, percentage: 57.6 },
+    { type: "Puntual", amount: 22180.50, percentage: 28.2 },
+    { type: "Campaña", amount: 11149.60, percentage: 14.2 }
+  ]
 };
 
 export default function DonationAnalytics() {
   const [metrics, setMetrics] = useState<DonationMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [totalDonations, setTotalDonations] = useState(0);
-  const [averageDonation, setAverageDonation] = useState(0);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState("6m");
+
   useEffect(() => {
-    // Simular una carga de datos
+    // En desarrollo, usamos datos simulados
     const timer = setTimeout(() => {
       setMetrics(mockDonationMetrics);
-      setTotalDonations(100); // Valor que coincide con lo que se muestra en el dashboard
-      setAverageDonation(17.03); // Valor que coincide con lo que se muestra en el dashboard
       setLoading(false);
     }, 1000);
-    
+
     return () => clearTimeout(timer);
-    
-    // Código original comentado
+
+    // En producción, descomentar esto:
     /*
-    async function fetchData() {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/analytics/donations');
-        const data = await response.json();
-        
-        if (data.metrics) {
-          setMetrics(data.metrics);
-          setTotalDonations(data.totalDonations || 0);
-          setAverageDonation(data.averageDonation || 0);
+        const response = await fetch(`/api/analytics/donations?timeframe=${timeframe}`);
+        if (!response.ok) {
+          throw new Error('Error al cargar los datos de donaciones');
         }
-      } catch (error) {
-        console.error("Error fetching donation metrics:", error);
+        const data = await response.json();
+        setMetrics(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+        console.error('Error fetching donation data:', err);
       } finally {
         setLoading(false);
       }
-    }
-    
+    };
+
     fetchData();
     */
-  }, []);
-  
+  }, [timeframe]);
+
   if (loading) {
     return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Análisis de Donaciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  if (!metrics) {
-    return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Análisis de Donaciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-yellow-50 text-yellow-700 rounded">
-            No se pudieron cargar los datos de donaciones.
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  // Format month labels for better display
-  const formattedMonthlyData = metrics.monthlyDonations.map(item => {
-    const [year, month] = item.month.split('-');
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return {
-      ...item,
-      label: `${monthNames[parseInt(month) - 1]} ${year}`
-    };
-  });
-  
-  return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle>Análisis de Donaciones</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Donaciones</h3>
-            <p className="mt-1 text-2xl font-semibold">{totalDonations.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Donación Promedio</h3>
-            <p className="mt-1 text-2xl font-semibold">{averageDonation.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm font-medium text-gray-500">Total Donantes</h3>
-            <p className="mt-1 text-2xl font-semibold">{metrics.totalDonors}</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-medium mb-4">Tendencia de Donaciones</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={formattedMonthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: any) => {
-                      if (typeof value === 'number') {
-                        return [
-                          value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' }),
-                          "Importe"
-                        ];
-                      }
-                      return [value, "Importe"];
-                    }}
-                  />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="amount" 
-                    name="Donaciones" 
-                    stroke="#8884d8" 
-                    activeDot={{ r: 8 }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+      <div className="space-y-4">
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="h-64 flex items-center justify-center">
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
             </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4">Distribución por Importe</h3>
-            <div className="h-64">
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+        <p className="text-yellow-700">{error || 'No se pudieron cargar los datos de donaciones'}</p>
+      </div>
+    );
+  }
+
+  // Formateador para valores monetarios
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2
+    }).format(value);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Donaciones</p>
+                <p className="mt-1 text-2xl font-bold">{metrics.totalDonations.toLocaleString()}</p>
+              </div>
+              <div className="text-3xl bg-purple-50 p-3 rounded-full">💰</div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Importe Total</p>
+                <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.totalAmount)}</p>
+                <p className={`text-xs text-green-600 font-medium`}>
+                  ▲ {metrics.donationGrowth.toFixed(1)}%
+                </p>
+              </div>
+              <div className="text-3xl bg-green-50 p-3 rounded-full">💸</div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Donación Promedio</p>
+                <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.averageDonation)}</p>
+              </div>
+              <div className="text-3xl bg-blue-50 p-3 rounded-full">📊</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Tendencia de Donaciones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={metrics.donationDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
-                    nameKey="range"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {metrics.donationDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
+                <LineChart
+                  data={metrics.monthlyData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis 
+                    yAxisId="left" 
+                    orientation="left" 
+                    stroke="#8884d8"
+                    label={{ value: 'Importe (€)', angle: -90, position: 'insideLeft' }}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right" 
+                    stroke="#82ca9d"
+                    label={{ value: 'Número de Donaciones', angle: 90, position: 'insideRight' }}
+                  />
                   <Tooltip 
-                    formatter={(value: any, name: string, props: any) => {
-                      if (props && props.payload && typeof props.payload.percentage === 'number') {
-                        return [
-                          `${typeof value === 'number' ? value : 0} donaciones (${props.payload.percentage.toFixed(1)}%)`,
-                          props.payload.range
-                        ];
+                    formatter={(value, name) => {
+                      if (name === "amount") {
+                        return [formatCurrency(value as number), "Importe"];
+                      } else if (name === "count") {
+                        return [(value as number).toLocaleString(), "Donaciones"];
                       }
                       return [value, name];
                     }}
                   />
+                  <Legend />
+                  <Line 
+                    yAxisId="left" 
+                    type="monotone" 
+                    dataKey="amount" 
+                    name="Importe" 
+                    stroke="#8884d8" 
+                    strokeWidth={2}
+                    activeDot={{ r: 8 }}
+                  />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="count" 
+                    name="Donaciones" 
+                    stroke="#82ca9d" 
+                    strokeWidth={2}
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Distribución por Tipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.donationsByType}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="amount"
+                    nameKey="type"
+                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {metrics.donationsByType.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value, name, props) => [
+                      formatCurrency(value as number),
+                      props.payload.type
+                    ]}
+                  />
+                  <Legend layout="vertical" verticalAlign="middle" align="right" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>Evolución de Donación Promedio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={metrics.monthlyData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis 
+                  domain={[
+                    (dataMin: number) => Math.floor(dataMin * 0.95),
+                    (dataMax: number) => Math.ceil(dataMax * 1.05)
+                  ]}
+                  label={{ value: 'Donación Promedio (€)', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip 
+                  formatter={(value) => [
+                    formatCurrency(value as number),
+                    "Donación Promedio"
+                  ]}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="average" 
+                  name="Donación Promedio" 
+                  fill="#8884d8" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 } 

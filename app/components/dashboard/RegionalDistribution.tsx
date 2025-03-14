@@ -2,253 +2,302 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
 
 type RegionData = {
-  name: string;
+  region: string;
   affiliates: number;
-  supporters: number;
+  sympathizers: number;
   percentage: number;
 };
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#4CAF50', '#FF5722', '#9C27B0', '#3F51B5', '#E91E63'];
+type RegionalMetrics = {
+  totalRegions: number;
+  topRegion: string;
+  topRegionPercentage: number;
+  regions: RegionData[];
+};
 
-// Datos simulados para usar directamente
-const mockRegionData: RegionData[] = [
-  { name: 'Madrid', affiliates: 45000, supporters: 20000, percentage: 21.6 },
-  { name: 'Andalucía', affiliates: 38000, supporters: 17000, percentage: 18.3 },
-  { name: 'Cataluña', affiliates: 30000, supporters: 12000, percentage: 14.4 },
-  { name: 'Valencia', affiliates: 25000, supporters: 10000, percentage: 12.0 },
-  { name: 'Galicia', affiliates: 18000, supporters: 8000, percentage: 8.7 },
-  { name: 'País Vasco', affiliates: 15000, supporters: 7000, percentage: 7.2 },
-  { name: 'Castilla y León', affiliates: 12000, supporters: 6000, percentage: 5.8 },
-  { name: 'Canarias', affiliates: 10000, supporters: 5000, percentage: 4.8 },
-  { name: 'Aragón', affiliates: 8000, supporters: 4000, percentage: 3.8 },
-  { name: 'Asturias', affiliates: 7000, supporters: 3500, percentage: 3.4 }
-];
+// Colores para los gráficos
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFCCCB', '#A569BD', '#5DADE2', '#58D68D'];
+
+// Datos simulados para desarrollo
+const mockRegionalMetrics: RegionalMetrics = {
+  totalRegions: 17,
+  topRegion: "Madrid",
+  topRegionPercentage: 21.6,
+  regions: [
+    { region: "Madrid", affiliates: 45000, sympathizers: 18500, percentage: 21.6 },
+    { region: "Andalucía", affiliates: 38000, sympathizers: 15200, percentage: 18.3 },
+    { region: "Cataluña", affiliates: 30000, sympathizers: 12000, percentage: 14.4 },
+    { region: "Valencia", affiliates: 25000, sympathizers: 10000, percentage: 12.0 },
+    { region: "Galicia", affiliates: 18000, sympathizers: 7200, percentage: 8.7 },
+    { region: "Castilla y León", affiliates: 12000, sympathizers: 4800, percentage: 5.8 },
+    { region: "País Vasco", affiliates: 10000, sympathizers: 4000, percentage: 4.8 },
+    { region: "Canarias", affiliates: 8000, sympathizers: 3200, percentage: 3.8 },
+    { region: "Castilla-La Mancha", affiliates: 7500, sympathizers: 3000, percentage: 3.6 },
+    { region: "Otras regiones", affiliates: 14466, sympathizers: 5734, percentage: 7.0 }
+  ]
+};
 
 export default function RegionalDistribution() {
-  const [regionData, setRegionData] = useState<RegionData[]>([]);
+  const [metrics, setMetrics] = useState<RegionalMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'affiliates' | 'supporters' | 'percentage'>('affiliates');
-  const [totalAffiliates, setTotalAffiliates] = useState(0);
-  const [totalSupporters, setTotalSupporters] = useState(0);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"affiliates" | "percentage">("affiliates");
+  const [showCount, setShowCount] = useState(5);
+
   useEffect(() => {
-    // Simular una carga de datos
+    // En desarrollo, usamos datos simulados
     const timer = setTimeout(() => {
-      setRegionData(mockRegionData);
-      
-      // Calcular totales
-      const affiliatesTotal = mockRegionData.reduce((sum, region) => sum + region.affiliates, 0);
-      const supportersTotal = mockRegionData.reduce((sum, region) => sum + region.supporters, 0);
-      
-      setTotalAffiliates(affiliatesTotal);
-      setTotalSupporters(supportersTotal);
+      setMetrics(mockRegionalMetrics);
       setLoading(false);
     }, 1000);
-    
+
     return () => clearTimeout(timer);
-    
-    // Código original comentado
+
+    // En producción, descomentar esto:
     /*
-    async function fetchData() {
+    const fetchData = async () => {
       try {
         const response = await fetch('/api/analytics/regions');
-        const data = await response.json();
-        
-        if (data.regions) {
-          // Calculate totals
-          const affiliatesTotal = data.regions.reduce((sum: number, region: RegionData) => sum + region.affiliates, 0);
-          const supportersTotal = data.regions.reduce((sum: number, region: RegionData) => sum + region.supporters, 0);
-          
-          // Add percentage to each region
-          const regionsWithPercentage = data.regions.map((region: RegionData) => ({
-            ...region,
-            percentage: (region.affiliates / (affiliatesTotal || 1)) * 100
-          }));
-          
-          setRegionData(regionsWithPercentage);
-          setTotalAffiliates(affiliatesTotal);
-          setTotalSupporters(supportersTotal);
+        if (!response.ok) {
+          throw new Error('Error al cargar los datos regionales');
         }
-      } catch (error) {
-        console.error("Error fetching regional data:", error);
+        const data = await response.json();
+        setMetrics(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+        console.error('Error fetching regional data:', err);
       } finally {
         setLoading(false);
       }
-    }
-    
+    };
+
     fetchData();
     */
   }, []);
-  
-  // Sort data based on selected criteria
-  const sortedData = [...regionData].sort((a, b) => b[sortBy] - a[sortBy]);
-  
-  // Top 5 regions for pie chart
-  const topRegions = [...regionData].sort((a, b) => b.affiliates - a.affiliates).slice(0, 5);
-  
-  // Calculate "Others" for pie chart if there are more than 5 regions
-  const otherRegions = regionData.length > 5 
-    ? {
-        name: "Otros",
-        affiliates: regionData
-          .sort((a, b) => b.affiliates - a.affiliates)
-          .slice(5)
-          .reduce((sum, region) => sum + region.affiliates, 0),
-        percentage: regionData
-          .sort((a, b) => b.affiliates - a.affiliates)
-          .slice(5)
-          .reduce((sum, region) => sum + region.percentage, 0),
-        supporters: regionData
-          .sort((a, b) => b.affiliates - a.affiliates)
-          .slice(5)
-          .reduce((sum, region) => sum + region.supporters, 0)
-      }
-    : null;
-  
-  // Final data for pie chart
-  const pieChartData = otherRegions 
-    ? [...topRegions, otherRegions]
-    : topRegions;
-  
+
   if (loading) {
     return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Distribución Regional</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card className="shadow-sm">
+          <CardContent className="p-6">
+            <div className="h-64 flex items-center justify-center">
+              <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
-  
-  if (regionData.length === 0) {
+
+  if (error || !metrics) {
     return (
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle>Distribución Regional</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-yellow-50 text-yellow-700 rounded">
-            No se pudieron cargar los datos regionales.
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+        <p className="text-yellow-700">{error || 'No se pudieron cargar los datos regionales'}</p>
+      </div>
     );
   }
-  
+
+  // Ordenar y limitar los datos según las preferencias
+  const sortedData = [...metrics.regions]
+    .sort((a, b) => b[sortBy] - a[sortBy])
+    .slice(0, showCount);
+
+  // Formateador para números
+  const formatNumber = (value: number | string) => {
+    if (typeof value === 'number') {
+      return value.toLocaleString();
+    }
+    return value;
+  };
+
+  // Formateador para porcentajes
+  const formatPercentage = (value: number | string) => {
+    if (typeof value === 'number') {
+      return `${value.toFixed(1)}%`;
+    }
+    return `${value}%`;
+  };
+
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle>Distribución Regional</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-sm">
-            <span className="font-medium">Total Afiliados:</span> {totalAffiliates.toLocaleString()}
-            <span className="mx-2">|</span>
-            <span className="font-medium">Total Simpatizantes:</span> {totalSupporters.toLocaleString()}
-          </div>
-          <div>
-            <label htmlFor="sortBy" className="mr-2 text-sm">Ordenar por:</label>
-            <select 
-              id="sortBy"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'affiliates' | 'supporters' | 'percentage')}
-              className="border rounded p-1 text-sm"
-            >
-              <option value="affiliates">Afiliados</option>
-              <option value="supporters">Simpatizantes</option>
-              <option value="percentage">Porcentaje</option>
-            </select>
-          </div>
+    <div className="space-y-6">
+      {/* Header con controles */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-bold">Distribución Regional</h2>
+          <p className="text-sm text-gray-500">
+            {metrics.totalRegions} regiones en total, {metrics.topRegion} es la región principal ({formatPercentage(metrics.topRegionPercentage)})
+          </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-medium mb-4">Distribución por Comunidad</h3>
-            <div className="h-64">
+        <div className="flex gap-4">
+          <select 
+            className="px-3 py-2 border rounded-md text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "affiliates" | "percentage")}
+          >
+            <option value="affiliates">Ordenar por afiliados</option>
+            <option value="percentage">Ordenar por porcentaje</option>
+          </select>
+          <select 
+            className="px-3 py-2 border rounded-md text-sm"
+            value={showCount}
+            onChange={(e) => setShowCount(Number(e.target.value))}
+          >
+            <option value="5">Top 5</option>
+            <option value="10">Top 10</option>
+            <option value="15">Top 15</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Distribución de Afiliados por Región</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sortedData.slice(0, 10)} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
+                <BarChart
+                  data={sortedData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  layout="vertical"
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} />
+                  <YAxis 
+                    dataKey="region" 
+                    type="category" 
+                    width={100}
+                    tick={{ fontSize: 12 }}
+                  />
                   <Tooltip 
-                    formatter={(value: any, name: string) => {
-                      if (typeof value !== 'number') {
-                        return [value, name];
+                    formatter={(value) => {
+                      if (typeof value === 'number') {
+                        return [formatNumber(value), "Afiliados"];
                       }
-                      
-                      if (name === 'percentage') {
-                        return [`${value.toFixed(1)}%`, 'Porcentaje'];
-                      } else if (name === 'affiliates') {
-                        return [value.toLocaleString(), 'Afiliados'];
-                      } else if (name === 'supporters') {
-                        return [value.toLocaleString(), 'Simpatizantes'];
-                      }
-                      
-                      return [value, name];
+                      return [value, "Afiliados"];
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="affiliates" name="Afiliados" fill="#8884d8" />
-                  <Bar dataKey="supporters" name="Simpatizantes" fill="#82ca9d" />
+                  <Bar 
+                    dataKey="affiliates" 
+                    name="Afiliados" 
+                    fill="#8884d8" 
+                    radius={[0, 4, 4, 0]}
+                  />
+                  <Bar 
+                    dataKey="sympathizers" 
+                    name="Simpatizantes" 
+                    fill="#82ca9d" 
+                    radius={[0, 4, 4, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4">Principales Comunidades</h3>
-            <div className="h-64">
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Porcentaje por Región</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={pieChartData}
+                    data={sortedData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
+                    labelLine={true}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="affiliates"
-                    nameKey="name"
+                    nameKey="region"
                     label={({name, percent}) => {
                       if (typeof percent === 'number') {
-                        return `${name}: ${percent.toFixed(0)}%`;
+                        return `${name}: ${(percent * 100).toFixed(0)}%`;
                       }
-                      return name;
+                      return `${name}`;
                     }}
                   >
-                    {pieChartData.map((entry, index) => (
+                    {sortedData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: any, name: string, props: any) => {
-                      if (props && props.payload && typeof props.payload.percentage === 'number') {
+                    formatter={(value, name, props) => {
+                      if (props && props.payload) {
                         return [
-                          `${typeof value === 'number' ? value.toLocaleString() : value} (${props.payload.percentage.toFixed(1)}%)`,
-                          props.payload.name
+                          `${formatNumber(value as number)} (${formatPercentage(props.payload.percentage)})`,
+                          props.payload.region
                         ];
                       }
                       return [value, name];
                     }}
                   />
+                  <Legend layout="vertical" verticalAlign="middle" align="right" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabla de datos */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>Detalle por Región</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Región
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Afiliados
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Simpatizantes
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Porcentaje
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sortedData.map((region, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {region.region}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                      {formatNumber(region.affiliates)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                      {formatNumber(region.sympathizers)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                      {formatPercentage(region.percentage)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 } 

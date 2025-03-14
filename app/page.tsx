@@ -2,13 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "./lib/auth";
 import LoginForm from './components/auth/LoginForm';
 import KPIOverview from './components/dashboard/KPIOverview';
-import CampaignAnalysis from './components/dashboard/CampaignAnalysis';
-import GeographicDistribution from './components/dashboard/GeographicDistribution';
 import DonationAnalytics from './components/dashboard/DonationAnalytics';
 import CampaignEffectiveness from './components/dashboard/CampaignEffectiveness';
 import RegionalDistribution from './components/dashboard/RegionalDistribution';
@@ -104,46 +99,64 @@ export default function Home() {
     );
   }
 
-  // Si no hay métricas, no mostrar nada
-  if (!metrics) {
+  // Si no hay métricas y no estamos en modo desarrollo, no mostrar nada
+  if (!metrics && !DEV_MODE) {
     return null;
   }
 
   // Mostrar el dashboard
   return (
-    <main className="p-4 md:p-10 mx-auto max-w-7xl">
-      <h1 className="text-3xl font-bold mb-8">Dashboard Político</h1>
-      
-      {userEmail && (
-        <div className="mb-4 text-sm text-gray-600">
-          Usuario: {userEmail}
-          {DEV_MODE && <span className="ml-2 bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs">MODO DESARROLLO</span>}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Político</h1>
+            {userEmail && (
+              <div className="text-sm text-gray-600 flex items-center">
+                <span className="mr-2">Usuario: {userEmail}</span>
+                {DEV_MODE && <span className="bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs">MODO DESARROLLO</span>}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      
-      <div className="mb-8">
-        <KPIOverview />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <RegionalDistribution />
-        <DonationAnalytics />
-      </div>
-      
-      <div className="mb-8">
-        <CampaignEffectiveness />
-      </div>
-      
-      {/* Componentes originales que pueden ser redundantes */}
-      {/* 
-      <div className="mb-8">
-        <GeographicDistribution />
-      </div>
-      
-      <div className="mb-8">
-        <CampaignAnalysis />
-      </div>
-      */}
-    </main>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* KPI Overview */}
+        <section className="mb-8">
+          <KPIOverview />
+        </section>
+
+        {/* Regional Distribution and Donation Analytics */}
+        <section className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <RegionalDistribution />
+            </div>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <DonationAnalytics />
+            </div>
+          </div>
+        </section>
+
+        {/* Campaign Effectiveness */}
+        <section className="mb-8">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <CampaignEffectiveness />
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-sm text-gray-500">
+            © {new Date().getFullYear()} Dashboard Político - Todos los derechos reservados
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 } 
