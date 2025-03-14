@@ -60,7 +60,7 @@ const MetricasGenerales = ({ metrics }: MetricasGeneralesProps) => {
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-500">Total Donaciones</p>
               <p className="mt-1 text-2xl font-semibold">{metrics.totalDonaciones.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
-              <p className="text-sm text-gray-500">Promedio: {metrics.donacionesPromedio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
+              <p className="text-sm text-gray-500">Promedio: {metrics.donacionPromedio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}</p>
               <div className="mt-4 h-16">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={[

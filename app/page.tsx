@@ -6,9 +6,9 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "./lib/auth";
 import LoginForm from './components/auth/LoginForm';
-import MetricasGenerales from './components/MetricasGenerales';
-import DistribucionRegional from './components/DistribucionRegional';
-import MetricasCuotas from './components/MetricasCuotas';
+import KPIOverview from './components/dashboard/KPIOverview';
+import CampaignAnalysis from './components/dashboard/CampaignAnalysis';
+import GeographicDistribution from './components/dashboard/GeographicDistribution';
 import { DashboardMetrics } from './types/hubspot';
 
 export default function Home() {
@@ -108,14 +108,16 @@ export default function Home() {
         </div>
       )}
       
-      <MetricasGenerales metrics={metrics} />
-      
-      <div className="mt-8">
-        <DistribucionRegional distribucion={metrics.distribucionRegional} />
+      <div className="mb-8">
+        <KPIOverview />
       </div>
       
-      <div className="mt-8">
-        <MetricasCuotas metrics={metrics} />
+      <div className="mb-8">
+        <GeographicDistribution />
+      </div>
+      
+      <div className="mb-8">
+        <CampaignAnalysis />
       </div>
     </main>
   );

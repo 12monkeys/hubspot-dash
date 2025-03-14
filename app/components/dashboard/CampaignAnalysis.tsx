@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
-import TestChart from "./TestChart";
 import CampaignChart from "./CampaignChart";
 import DistribucionRegional from "./DistribucionRegional";
 import CampaignDetail from "./CampaignDetail";
@@ -87,10 +86,6 @@ export default function CampaignAnalysis() {
       )}
       
       <CampaignKPI items={kpiItems} />
-      
-      <div className="mb-8">
-        <TestChart />
-      </div>
     </div>
   );
 } 
