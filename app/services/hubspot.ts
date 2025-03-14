@@ -634,7 +634,10 @@ class HubSpotService {
       // Get contact details for each contact ID
       const contacts = await Promise.all(
         contactIds.map(async (contactId: string) => {
-          const contactResponse = await this.client.crm.contacts.basicApi.getById(contactId);
+          const contactResponse = await this.client.crm.contacts.basicApi.getById(
+            contactId,
+            ['firstname', 'lastname', 'email', 'phone', 'createdate']
+          );
           return contactResponse;
         })
       );
