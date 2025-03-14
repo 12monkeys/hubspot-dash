@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import clientPromise from "../../lib/mongodb";
+import clientPromise from "../../../lib/mongodb";
 
 // Indicar que esta ruta es dinámica
 export const dynamic = 'force-dynamic';
@@ -9,6 +9,8 @@ export async function GET(request: Request) {
   try {
     console.log("=== Iniciando proceso de confirmación de acceso ===");
     console.log("URL de la solicitud:", request.url);
+    console.log("Entorno:", process.env.NODE_ENV);
+    console.log("MONGODB_URI configurada:", !!process.env.MONGODB_URI);
     
     // Verificar conexión a MongoDB primero
     try {
@@ -38,7 +40,36 @@ export async function GET(request: Request) {
         code: (mongoError as any)?.code,
         stack: mongoError instanceof Error ? mongoError.stack : undefined
       });
-      throw new Error("No se pudo establecer conexión con la base de datos");
+      // Envía una respuesta de error antes de lanzar la excepción
+      return new Response(
+        `<!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Error de Conexión</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: center; margin: 50px; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
+            .error { color: #d32f2f; }
+            .button { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #4285F4; color: white; text-decoration: none; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2 class="error">Error de Conexión a la Base de Datos</h2>
+            <p>No se pudo establecer conexión con la base de datos.</p>
+            <p>Por favor, inténtalo de nuevo más tarde o contacta con soporte.</p>
+            <a href="/" class="button">Volver a Inicio</a>
+          </div>
+        </body>
+        </html>`,
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8"
+          }
+        }
+      );
     }
 
     const { searchParams } = new URL(request.url);
