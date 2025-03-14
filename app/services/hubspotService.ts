@@ -170,157 +170,196 @@ class HubSpotService {
       // 1. Primero, obtener el total de contactos sin recuperar datos
       console.log('Obteniendo total de contactos...');
       const totalContactsUrl = 'https://api.hubapi.com/crm/v3/objects/contacts/search';
-      const totalResponse = await fetch(totalContactsUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          limit: 0,
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "hs_object_id",
-                  operator: "HAS_PROPERTY"
-                }
-              ]
+      
+      // Añadir un timeout para esta solicitud
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+      
+      try {
+        const totalResponse = await fetch(totalContactsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            limit: 0,
+            filterGroups: [
+              {
+                filters: [
+                  {
+                    propertyName: "hs_object_id",
+                    operator: "HAS_PROPERTY"
+                  }
+                ]
+              }
+            ]
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        const totalData = await totalResponse.json();
+        const totalContacts = totalData.total || 0;
+        console.log(`Total de contactos en HubSpot: ${totalContacts}`);
+        
+        // 2. Reducir aún más la muestra - solo 2 páginas (200 contactos)
+        let allContacts: any[] = [];
+        let hasMore = true;
+        let after: string | undefined = undefined;
+        let pageCount = 0;
+        const MAX_PAGES = 2; // Reducir a 2 páginas (200 contactos)
+        
+        // Establecer un timeout global para toda la función de obtención de muestra
+        const sampleTimeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout al obtener muestra de contactos')), 20000); // 20 segundos
+        });
+        
+        // Crear una promesa para obtener la muestra
+        const samplePromise = (async () => {
+          while (hasMore && pageCount < MAX_PAGES) {
+            pageCount++;
+            console.log(`Obteniendo página ${pageCount} de contactos (muestra)...`);
+            
+            const pageController = new AbortController();
+            const pageTimeoutId = setTimeout(() => pageController.abort(), 8000); // 8 segundos por página
+            
+            try {
+              const url: string = after 
+                ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}&properties=createdate,email,firstname,lastname,relacion_con_vox,region`
+                : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,relacion_con_vox,region';
+              
+              const response = await fetch(url, {
+                headers: {
+                  'Authorization': `Bearer ${this.accessToken}`,
+                  'Content-Type': 'application/json'
+                },
+                signal: pageController.signal
+              });
+              
+              clearTimeout(pageTimeoutId);
+              
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error en respuesta de HubSpot:', {
+                  status: response.status,
+                  statusText: response.statusText,
+                  body: errorText
+                });
+                throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
+              }
+              
+              const data = await response.json();
+              
+              if (pageCount === 1 && data.results && data.results.length > 0) {
+                console.log('Ejemplo de propiedades de contacto:', data.results[0].properties);
+              }
+              
+              allContacts = [...allContacts, ...data.results];
+              console.log(`Obtenidos ${data.results.length} contactos en la página ${pageCount}`);
+              
+              if (data.paging && data.paging.next && data.paging.next.after) {
+                after = data.paging.next.after;
+              } else {
+                hasMore = false;
+              }
+            } catch (fetchError) {
+              if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                console.error(`Timeout al obtener la página ${pageCount} de contactos`);
+                break; // Salir del bucle en caso de timeout
+              } else {
+                console.error('Error al obtener contactos:', fetchError);
+                break; // Salir del bucle en caso de error
+              }
             }
-          ]
-        })
-      });
-      
-      const totalData = await totalResponse.json();
-      const totalContacts = totalData.total || 0;
-      console.log(`Total de contactos en HubSpot: ${totalContacts}`);
-      
-      // 2. Obtener una muestra representativa para análisis
-      let allContacts: any[] = [];
-      let hasMore = true;
-      let after: string | undefined = undefined;
-      let pageCount = 0;
-      const MAX_PAGES = 3; // Reducir a 3 páginas (300 contactos) para análisis
-      
-      while (hasMore && pageCount < MAX_PAGES) {
-        pageCount++;
-        console.log(`Obteniendo página ${pageCount} de contactos (muestra)...`);
+          }
+          
+          return allContacts;
+        })();
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
+        // Competir entre el timeout y la obtención de la muestra
         try {
-          const url: string = after 
-            ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}&properties=createdate,email,firstname,lastname,relacion_con_vox,region`
-            : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,relacion_con_vox,region';
-          
-          const response = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${this.accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error en respuesta de HubSpot:', {
-              status: response.status,
-              statusText: response.statusText,
-              body: errorText
-            });
-            throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          
-          if (pageCount === 1 && data.results && data.results.length > 0) {
-            console.log('Ejemplo de propiedades de contacto:', data.results[0].properties);
-          }
-          
-          allContacts = [...allContacts, ...data.results];
-          console.log(`Obtenidos ${data.results.length} contactos en la página ${pageCount}`);
-          
-          if (data.paging && data.paging.next && data.paging.next.after) {
-            after = data.paging.next.after;
-          } else {
-            hasMore = false;
-          }
-        } catch (fetchError) {
-          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-            console.error(`Timeout al obtener la página ${pageCount} de contactos`);
-            hasMore = false;
-          } else {
-            throw fetchError;
-          }
+          allContacts = await Promise.race([samplePromise, sampleTimeoutPromise]);
+        } catch (timeoutError) {
+          console.error('Timeout global al obtener muestra de contactos');
+          // Continuar con los contactos que hayamos obtenido hasta ahora
         }
-      }
-      
-      // 3. Calcular proporciones basadas en la muestra
-      const sampleSize = allContacts.length;
-      console.log(`Muestra analizada: ${sampleSize} contactos`);
-      
-      if (sampleSize === 0) {
-        console.warn('No se pudieron obtener contactos para análisis');
-        return {
+        
+        // 3. Calcular proporciones basadas en la muestra
+        const sampleSize = allContacts.length;
+        console.log(`Muestra analizada: ${sampleSize} contactos`);
+        
+        if (sampleSize === 0) {
+          console.warn('No se pudieron obtener contactos para análisis');
+          return {
+            total: totalContacts,
+            afiliados: 0,
+            simpatizantes: 0,
+            regiones: {},
+            recientes: 0
+          };
+        }
+        
+        // Contar afiliados y simpatizantes en la muestra
+        const afiliadosEnMuestra = allContacts.filter(c => 
+          c.properties.relacion_con_vox === 'Afiliado').length;
+        
+        const simpatizantesEnMuestra = allContacts.filter(c => 
+          c.properties.relacion_con_vox === 'Simpatizante').length;
+        
+        console.log(`En la muestra: ${afiliadosEnMuestra} afiliados, ${simpatizantesEnMuestra} simpatizantes`);
+        
+        // Extrapolar al total real
+        const afiliados = Math.round((afiliadosEnMuestra / sampleSize) * totalContacts);
+        const simpatizantes = Math.round((simpatizantesEnMuestra / sampleSize) * totalContacts);
+        
+        // Calcular distribución regional en la muestra
+        const regionesEnMuestra: Record<string, number> = {};
+        allContacts.forEach(contact => {
+          const region = contact.properties.region || 'No especificada';
+          regionesEnMuestra[region] = (regionesEnMuestra[region] || 0) + 1;
+        });
+        
+        // Extrapolar regiones al total real
+        const regiones: Record<string, number> = {};
+        Object.entries(regionesEnMuestra).forEach(([region, count]) => {
+          regiones[region] = Math.round((count / sampleSize) * totalContacts);
+        });
+        
+        // Calcular contactos recientes (último mes) en la muestra
+        const fechaUnMesAtras = new Date();
+        fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
+        const recientesEnMuestra = allContacts.filter(c => 
+          new Date(c.properties.createdate) >= fechaUnMesAtras).length;
+        
+        // Add this line before the summary object
+        const recientes = Math.round((recientesEnMuestra / sampleSize) * totalContacts);
+        
+        const summary: ContactSummary = {
           total: totalContacts,
+          afiliados,
+          simpatizantes,
+          regiones,
+          recientes
+        };
+
+        this.contactSummaryCache = summary;
+        this.contactSummaryCacheTime = Date.now();
+
+        console.log('Resumen de contactos actualizado (extrapolado):', summary);
+        return summary;
+      } catch (error) {
+        console.error('Error al obtener resumen de contactos:', error);
+        // En caso de error, devolver un resumen vacío
+        return {
+          total: 0,
           afiliados: 0,
           simpatizantes: 0,
           regiones: {},
           recientes: 0
         };
       }
-      
-      // Contar afiliados y simpatizantes en la muestra
-      const afiliadosEnMuestra = allContacts.filter(c => 
-        c.properties.relacion_con_vox === 'Afiliado').length;
-      
-      const simpatizantesEnMuestra = allContacts.filter(c => 
-        c.properties.relacion_con_vox === 'Simpatizante').length;
-      
-      console.log(`En la muestra: ${afiliadosEnMuestra} afiliados, ${simpatizantesEnMuestra} simpatizantes`);
-      
-      // Extrapolar al total real
-      const afiliados = Math.round((afiliadosEnMuestra / sampleSize) * totalContacts);
-      const simpatizantes = Math.round((simpatizantesEnMuestra / sampleSize) * totalContacts);
-      
-      // Calcular distribución regional en la muestra
-      const regionesEnMuestra: Record<string, number> = {};
-      allContacts.forEach(contact => {
-        const region = contact.properties.region || 'No especificada';
-        regionesEnMuestra[region] = (regionesEnMuestra[region] || 0) + 1;
-      });
-      
-      // Extrapolar regiones al total real
-      const regiones: Record<string, number> = {};
-      Object.entries(regionesEnMuestra).forEach(([region, count]) => {
-        regiones[region] = Math.round((count / sampleSize) * totalContacts);
-      });
-      
-      // Calcular contactos recientes (último mes) en la muestra
-      const fechaUnMesAtras = new Date();
-      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
-      const recientesEnMuestra = allContacts.filter(c => 
-        new Date(c.properties.createdate) >= fechaUnMesAtras).length;
-      
-      // Extrapolar recientes al total real
-      const recientes = Math.round((recientesEnMuestra / sampleSize) * totalContacts);
-      
-      const summary: ContactSummary = {
-        total: totalContacts,
-        afiliados,
-        simpatizantes,
-        regiones,
-        recientes
-      };
-
-      this.contactSummaryCache = summary;
-      this.contactSummaryCacheTime = Date.now();
-
-      console.log('Resumen de contactos actualizado (extrapolado):', summary);
-      return summary;
     } catch (error) {
       console.error('Error al obtener resumen de contactos:', error);
       // En caso de error, devolver un resumen vacío
