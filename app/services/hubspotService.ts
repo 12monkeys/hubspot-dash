@@ -167,46 +167,74 @@ class HubSpotService {
     console.log('Obteniendo resumen de contactos...');
     
     try {
-      // Obtener todos los contactos con paginación
+      // Obtener contactos con límite para evitar timeouts
       let allContacts: any[] = [];
       let hasMore = true;
       let after: string | undefined = undefined;
+      let pageCount = 0;
+      const MAX_PAGES = 5; // Limitar a 5 páginas (500 contactos) para evitar timeouts
       
-      while (hasMore) {
-        const url: string = after 
-          ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}`
-          : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,contactType,region';
+      while (hasMore && pageCount < MAX_PAGES) {
+        pageCount++;
+        console.log(`Obteniendo página ${pageCount} de contactos...`);
         
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // Añadir un timeout a la solicitud fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos de timeout
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error en respuesta de HubSpot:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText
+        try {
+          const url: string = after 
+            ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}&properties=createdate,email,firstname,lastname,contactType,region`
+            : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,contactType,region';
+          
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${this.accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            signal: controller.signal
           });
-          throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        allContacts = [...allContacts, ...data.results];
-        
-        // Verificar si hay más páginas
-        if (data.paging && data.paging.next && data.paging.next.after) {
-          after = data.paging.next.after;
-        } else {
-          hasMore = false;
+          
+          clearTimeout(timeoutId); // Limpiar el timeout si la solicitud se completa
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error en respuesta de HubSpot:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText
+            });
+            throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          allContacts = [...allContacts, ...data.results];
+          console.log(`Obtenidos ${data.results.length} contactos en la página ${pageCount}`);
+          
+          // Verificar si hay más páginas
+          if (data.paging && data.paging.next && data.paging.next.after) {
+            after = data.paging.next.after;
+          } else {
+            hasMore = false;
+          }
+        } catch (fetchError) {
+          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+            console.error(`Timeout al obtener la página ${pageCount} de contactos`);
+            hasMore = false; // Detener la paginación en caso de timeout
+          } else {
+            throw fetchError;
+          }
         }
       }
       
-      // Calcular métricas reales
+      if (hasMore && pageCount >= MAX_PAGES) {
+        console.warn(`Se alcanzó el límite de ${MAX_PAGES} páginas. No se obtuvieron todos los contactos.`);
+      }
+      
+      // Calcular métricas con los contactos obtenidos
       const totalContacts = allContacts.length;
+      console.log(`Total de contactos procesados: ${totalContacts}`);
+      
       const afiliados = allContacts.filter(c => 
         c.properties.contactType === 'Afiliado').length;
       const simpatizantes = allContacts.filter(c => 
