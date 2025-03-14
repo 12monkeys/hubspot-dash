@@ -170,10 +170,10 @@ class HubSpotService {
       // Obtener todos los contactos con paginación
       let allContacts: any[] = [];
       let hasMore = true;
-      let after = undefined;
+      let after: string | undefined = undefined;
       
       while (hasMore) {
-        const url = after 
+        const url: string = after 
           ? `https://api.hubapi.com/crm/v3/objects/contacts?limit=100&after=${after}`
           : 'https://api.hubapi.com/crm/v3/objects/contacts?limit=100&properties=createdate,email,firstname,lastname,contactType,region';
         
