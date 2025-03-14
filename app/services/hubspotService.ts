@@ -140,6 +140,10 @@ class HubSpotService {
   private schemaCache: Map<string, ObjectSchema> = new Map();
 
   constructor(accessToken: string) {
+    // Asegurarse de que el token comienza con 'pat-' para tokens de acceso privado
+    if (!accessToken.startsWith('pat-')) {
+      console.warn('El token de acceso no tiene el formato esperado (pat-...)');
+    }
     this.client = new Client({ accessToken });
   }
 
@@ -159,85 +163,33 @@ class HubSpotService {
     console.log('Obteniendo resumen de contactos...');
     
     try {
-      // Obtenemos el total de contactos
-      const totalContactsRequest = createSearchRequest({
-        limit: 1
+      // Usar fetch directo en lugar del cliente para probar
+      const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=100', {
+        headers: {
+          'Authorization': `Bearer ${this.client.accessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      const totalResponse = await this.client.crm.contacts.searchApi.doSearch(totalContactsRequest);
-      const totalContacts = totalResponse.total;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error en respuesta de HubSpot:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Error al obtener contactos: ${response.status} ${response.statusText}`);
+      }
       
-      // Obtenemos el total de afiliados
-      const affiliatesRequest = createSearchRequest({
-        filterGroups: [{
-          filters: [{
-            propertyName: 'contactType',
-            operator: FilterOperatorEnum.Eq,
-            value: 'Afiliado'
-          }]
-        }],
-        limit: 1
-      });
+      const data = await response.json();
       
-      const affiliatesResponse = await this.client.crm.contacts.searchApi.doSearch(affiliatesRequest);
-      const totalAfiliados = affiliatesResponse.total;
-      
-      // Obtenemos el total de simpatizantes
-      const sympathizersRequest = createSearchRequest({
-        filterGroups: [{
-          filters: [{
-            propertyName: 'contactType',
-            operator: FilterOperatorEnum.Eq,
-            value: 'Simpatizante'
-          }]
-        }],
-        limit: 1
-      });
-      
-      const simpatizantesResponse = await this.client.crm.contacts.searchApi.doSearch(sympathizersRequest);
-      const totalSimpatizantes = simpatizantesResponse.total;
-      
-      // Obtenemos el total de contactos recientes (último mes)
-      const fechaUnMesAtras = new Date();
-      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
-      const fechaUnMesAtrasStr = fechaUnMesAtras.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      const newContactsRequest = createSearchRequest({
-        filterGroups: [{
-          filters: [{
-            propertyName: 'createdate',
-            operator: FilterOperatorEnum.Gte,
-            value: fechaUnMesAtrasStr
-          }]
-        }],
-        limit: 1
-      });
-      
-      const contactosRecientesResponse = await this.client.crm.contacts.searchApi.doSearch(newContactsRequest);
-      const totalContactosRecientes = contactosRecientesResponse.total;
-      
-      // Para la distribución regional, necesitamos hacer una consulta separada para cada región
-      const regionRequest = createSearchRequest({
-        limit: 100,
-        properties: ['region'],
-        sorts: ['region']
-      });
-      
-      const regionResponse = await this.client.crm.contacts.searchApi.doSearch(regionRequest);
-      const regiones: Record<string, number> = {};
-      
-      // Calculamos la distribución con la muestra
-      regionResponse.results.forEach(contact => {
-        const region = contact.properties.region || 'No especificada';
-        regiones[region] = (regiones[region] || 0) + 1;
-      });
-      
+      // Simplificar para diagnóstico
       const summary: ContactSummary = {
-        total: totalContacts,
-        afiliados: totalAfiliados,
-        simpatizantes: totalSimpatizantes,
-        regiones,
-        recientes: totalContactosRecientes
+        total: data.total || data.results.length,
+        afiliados: 0, // Simplificado para diagnóstico
+        simpatizantes: 0, // Simplificado para diagnóstico
+        regiones: {},
+        recientes: 0
       };
 
       this.contactSummaryCache = summary;
@@ -355,76 +307,20 @@ class HubSpotService {
       // Get contact summary
       const contactSummary = await this.getContactSummary();
       
-      // Get donations
-      const donations = await this.getDonations();
-      
-      // Calculate donation metrics
-      const totalDonaciones = donations.length;
-      const donacionesPromedio = totalDonaciones > 0 
-        ? donations.reduce((sum, d) => sum + d.properties.amount, 0) / totalDonaciones 
-        : 0;
-
-      // Calculate monthly growth
-      const fechaUnMesAtras = new Date();
-      fechaUnMesAtras.setMonth(fechaUnMesAtras.getMonth() - 1);
-      const fechaUnMesAtrasStr = fechaUnMesAtras.toISOString().split('T')[0];
-      
-      const contactosRecientes = contactSummary.recientes;
-      const crecimientoMensual = contactSummary.total > 0 
-        ? (contactosRecientes / contactSummary.total) * 100 
-        : 0;
-
-      // Transform regional distribution
-      const distribucionRegional = Object.entries(contactSummary.regiones)
-        .map(([region, count]) => ({
-          region,
-          count
-        }));
-
-      // Get active campaigns
-      const campaigns = await this.getCampaigns();
-      const campañasActivas = campaigns.filter(c => 
-        c.properties.hs_campaign_status === 'ACTIVE'
-      ).length;
-
-      // Calculate conversion rate (simplified)
-      const tasaConversion = contactSummary.total > 0 
-        ? (contactSummary.afiliados / contactSummary.total) * 100 
-        : 0;
-
-      // Calculate quota metrics
-      const cuotaPromedio = donacionesPromedio;
-      const distribucionCuotas = [
-        { rango: '0-100', count: donations.filter(d => d.properties.amount <= 100).length },
-        { rango: '101-500', count: donations.filter(d => d.properties.amount > 100 && d.properties.amount <= 500).length },
-        { rango: '501-1000', count: donations.filter(d => d.properties.amount > 500 && d.properties.amount <= 1000).length },
-        { rango: '1000+', count: donations.filter(d => d.properties.amount > 1000).length }
-      ];
-
-      // Calculate monthly quota income
-      const ingresoCuotasMensual = donations
-        .filter(d => new Date(d.properties.date) >= fechaUnMesAtras)
-        .reduce((sum, d) => sum + d.properties.amount, 0);
-
-      // Get acquisition sources
-      const fuentesAdquisicion = [
-        { source: 'Directo', count: contactSummary.afiliados },
-        { source: 'Indirecto', count: contactSummary.simpatizantes }
-      ];
-
+      // Versión simplificada para diagnóstico
       return {
-        totalAfiliados: contactSummary.afiliados,
-        totalSimpatizantes: contactSummary.simpatizantes,
-        totalDonaciones,
-        donacionesPromedio,
-        crecimientoMensual,
-        distribucionRegional,
-        campañasActivas,
-        tasaConversion,
-        cuotaPromedio,
-        distribucionCuotas,
-        ingresoCuotasMensual,
-        fuentesAdquisicion
+        totalAfiliados: contactSummary.total,
+        totalSimpatizantes: 0,
+        totalDonaciones: 0,
+        donacionesPromedio: 0,
+        crecimientoMensual: 0,
+        distribucionRegional: [],
+        campañasActivas: 0,
+        tasaConversion: 0,
+        cuotaPromedio: 0,
+        distribucionCuotas: [],
+        ingresoCuotasMensual: 0,
+        fuentesAdquisicion: []
       };
     } catch (error) {
       console.error('Error getting dashboard metrics:', error);
@@ -634,7 +530,10 @@ class HubSpotService {
       // Get contact details for each contact ID
       const contacts = await Promise.all(
         contactIds.map(async (contactId: string) => {
-          const contactResponse = await this.client.crm.contacts.basicApi.getById(contactId);
+          const contactResponse = await this.client.crm.contacts.basicApi.getById(
+            contactId,
+            ['firstname', 'lastname', 'email', 'phone', 'createdate']
+          );
           return contactResponse;
         })
       );

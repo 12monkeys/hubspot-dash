@@ -13,6 +13,9 @@ export async function GET() {
   }
 
   try {
+    console.log('Token length:', process.env.HUBSPOT_ACCESS_TOKEN.length);
+    console.log('Token prefix:', process.env.HUBSPOT_ACCESS_TOKEN.substring(0, 6) + '...');
+    
     const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN);
     const dashboardMetrics = await hubspotService.getDashboardMetrics();
     
