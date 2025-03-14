@@ -24,6 +24,42 @@ type Campaign = {
   } | null;
 }
 
+interface HistoricalMetrics {
+  timeSeriesData: Array<{
+    date: string;
+    value: number;
+    afiliados: number;
+    simpatizantes: number;
+    tasaConversion: number;
+    ingresos: number;
+  }>;
+  summary: {
+    growth: number;
+    conversionChange: number;
+    totalRevenue: number;
+  };
+}
+
+interface AffiliateLifecycle {
+  conversionTime: Array<{
+    range: string;
+    count: number;
+  }>;
+  conversionFlow: any; // Sankey diagram data
+  averageConversionTime: number;
+  retentionRate: number;
+  lifetimeValue: number;
+}
+
+interface RegionalMetrics {
+  region: string;
+  affiliates: number;
+  sympathizers: number;
+  conversionRate: number;
+  growth: number;
+  potential: number;
+}
+
 export default function CampaignAnalysis() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
