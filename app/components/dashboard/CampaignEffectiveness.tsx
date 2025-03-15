@@ -532,7 +532,7 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
                     name="Campañas" 
                     data={roiVsBudgetData} 
                     fill="#8884d8"
-                    shape={(props) => {
+                    shape={(props: any) => {
                       const { cx, cy, payload } = props;
                       const status = payload.status;
                       const color = STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#8884d8';
