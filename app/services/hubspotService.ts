@@ -15,10 +15,12 @@ interface SearchOptions {
 export class HubspotService {
   private apiKey: string;
   private baseUrl: string;
+  private isServerSide: boolean;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.baseUrl = HUBSPOT_API_CONFIG.baseUrl;
+    this.isServerSide = typeof window === 'undefined';
   }
 
   // Método para obtener el token de acceso
@@ -31,24 +33,52 @@ export class HubspotService {
   // Método para realizar peticiones a la API de HubSpot
   private async fetchFromHubspot(endpoint: string, options: RequestInit = {}): Promise<any> {
     try {
-      const token = await this.getAccessToken();
-      const url = `${this.baseUrl}${endpoint}`;
-      
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      });
+      // Si estamos en el servidor, hacemos la petición directamente a HubSpot
+      if (this.isServerSide) {
+        const token = await this.getAccessToken();
+        const url = `${this.baseUrl}${endpoint}`;
+        
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Error en la petición a HubSpot: ${errorData.message || response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`Error en la petición a HubSpot: ${errorData.message || response.statusText}`);
+        }
+
+        return await response.json();
+      } 
+      // Si estamos en el cliente, usamos nuestro proxy
+      else {
+        const method = options.method || 'GET';
+        const data = options.body ? JSON.parse(options.body as string) : undefined;
+        
+        const response = await fetch('/api/hubspot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            endpoint,
+            method,
+            data,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error en la respuesta del proxy:', errorData);
+          throw new Error(`Error al comunicarse con HubSpot: ${errorData.error || response.statusText}`);
+        }
+
+        return await response.json();
       }
-
-      return await response.json();
     } catch (error) {
       console.error('Error al comunicarse con HubSpot:', error);
       throw error;

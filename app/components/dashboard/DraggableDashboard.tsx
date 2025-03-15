@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -38,6 +38,9 @@ interface Widget {
   type: WidgetType;
   title: string;
   size: 'small' | 'medium' | 'large';
+  gridArea?: string;
+  width?: number;
+  height?: number;
 }
 
 // Interfaz para las props del componente
@@ -47,7 +50,15 @@ interface DraggableDashboardProps {
 }
 
 // Componente para un widget individual
-const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange: (id: string) => void }) => {
+const SortableWidget = ({ 
+  widget, 
+  onSizeChange,
+  onResize
+}: { 
+  widget: Widget, 
+  onSizeChange: (id: string) => void,
+  onResize: (id: string, width: number, height: number) => void
+}) => {
   const {
     attributes,
     listeners,
@@ -57,11 +68,19 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
     isDragging,
   } = useSortable({ id: widget.id });
 
+  const widgetRef = useRef<HTMLDivElement | null>(null);
+  const resizeStartPos = useRef<{ x: number, y: number } | null>(null);
+  const originalSize = useRef<{ width: number, height: number } | null>(null);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1 : 0,
+    gridArea: widget.gridArea,
+    width: widget.width ? `${widget.width}px` : '100%',
+    height: widget.height ? `${widget.height}px` : '100%',
+    position: 'relative' as const,
   };
 
   // Determinar el tamaño del widget
@@ -69,6 +88,57 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
     small: 'col-span-1 row-span-1',
     medium: 'col-span-1 row-span-2',
     large: 'col-span-2 row-span-2',
+  };
+
+  // Manejar el inicio del redimensionamiento
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (widgetRef.current) {
+      resizeStartPos.current = { x: e.clientX, y: e.clientY };
+      originalSize.current = { 
+        width: widgetRef.current.offsetWidth, 
+        height: widgetRef.current.offsetHeight 
+      };
+      
+      // Agregar listeners para el movimiento y fin del redimensionamiento
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+    }
+  };
+
+  // Manejar el movimiento durante el redimensionamiento
+  const handleResizeMove = (e: MouseEvent) => {
+    if (resizeStartPos.current && originalSize.current && widgetRef.current) {
+      const deltaX = e.clientX - resizeStartPos.current.x;
+      const deltaY = e.clientY - resizeStartPos.current.y;
+      
+      const newWidth = Math.max(200, originalSize.current.width + deltaX);
+      const newHeight = Math.max(150, originalSize.current.height + deltaY);
+      
+      widgetRef.current.style.width = `${newWidth}px`;
+      widgetRef.current.style.height = `${newHeight}px`;
+    }
+  };
+
+  // Manejar el fin del redimensionamiento
+  const handleResizeEnd = () => {
+    if (resizeStartPos.current && originalSize.current && widgetRef.current) {
+      onResize(
+        widget.id, 
+        widgetRef.current.offsetWidth, 
+        widgetRef.current.offsetHeight
+      );
+      
+      // Limpiar
+      resizeStartPos.current = null;
+      originalSize.current = null;
+      
+      // Eliminar listeners
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    }
   };
 
   // Renderizar el contenido del widget según su tipo
@@ -105,7 +175,10 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        widgetRef.current = node;
+      }}
       style={style}
       className={`dashboard-widget ${sizeClasses[widget.size]} transition-all duration-200`}
     >
@@ -134,6 +207,10 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
         <div className="widget-content p-4 bg-white overflow-auto flex-grow">
           {renderWidgetContent()}
         </div>
+        <div 
+          className="resize-handle"
+          onMouseDown={handleResizeStart}
+        />
       </div>
     </div>
   );
@@ -143,14 +220,18 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
 const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = false, error = null }) => {
   // Definir los widgets disponibles
   const [widgets, setWidgets] = useState<Widget[]>([
-    { id: 'kpi-overview', type: 'kpi-overview', title: 'Resumen General', size: 'large' },
-    { id: 'regional-distribution', type: 'regional-distribution', title: 'Distribución Regional', size: 'medium' },
-    { id: 'donation-analytics', type: 'donation-analytics', title: 'Análisis de Donaciones', size: 'medium' },
-    { id: 'campaign-effectiveness', type: 'campaign-effectiveness', title: 'Efectividad de Campañas', size: 'large' },
+    { id: 'kpi-overview', type: 'kpi-overview', title: 'Resumen General', size: 'large', gridArea: '1 / 1 / 2 / 3' },
+    { id: 'regional-distribution', type: 'regional-distribution', title: 'Distribución Regional', size: 'medium', gridArea: '1 / 3 / 2 / 4' },
+    { id: 'donation-analytics', type: 'donation-analytics', title: 'Análisis de Donaciones', size: 'medium', gridArea: '2 / 1 / 3 / 2' },
+    { id: 'campaign-effectiveness', type: 'campaign-effectiveness', title: 'Efectividad de Campañas', size: 'large', gridArea: '2 / 2 / 3 / 4' },
   ]);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [gridLayout, setGridLayout] = useState({
+    columns: 3,
+    rows: 2
+  });
 
   // Configurar sensores para detectar eventos de arrastre
   const sensors = useSensors(
@@ -200,7 +281,19 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
       setWidgets((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        
+        // Intercambiar también las áreas de grid
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        const oldItem = items[oldIndex];
+        const swapItem = items[newIndex];
+        
+        if (oldItem.gridArea && swapItem.gridArea) {
+          const tempArea = oldItem.gridArea;
+          newItems[newIndex].gridArea = swapItem.gridArea;
+          newItems[oldIndex].gridArea = tempArea;
+        }
+        
+        return newItems;
       });
     }
 
@@ -222,13 +315,25 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
     );
   };
 
+  // Función para redimensionar un widget
+  const handleResize = (id: string, width: number, height: number) => {
+    setWidgets((items) =>
+      items.map((item) => {
+        if (item.id === id) {
+          return { ...item, width, height };
+        }
+        return item;
+      })
+    );
+  };
+
   // Función para restablecer el diseño predeterminado
   const resetLayout = () => {
     setWidgets([
-      { id: 'kpi-overview', type: 'kpi-overview', title: 'Resumen General', size: 'large' },
-      { id: 'regional-distribution', type: 'regional-distribution', title: 'Distribución Regional', size: 'medium' },
-      { id: 'donation-analytics', type: 'donation-analytics', title: 'Análisis de Donaciones', size: 'medium' },
-      { id: 'campaign-effectiveness', type: 'campaign-effectiveness', title: 'Efectividad de Campañas', size: 'large' },
+      { id: 'kpi-overview', type: 'kpi-overview', title: 'Resumen General', size: 'large', gridArea: '1 / 1 / 2 / 3' },
+      { id: 'regional-distribution', type: 'regional-distribution', title: 'Distribución Regional', size: 'medium', gridArea: '1 / 3 / 2 / 4' },
+      { id: 'donation-analytics', type: 'donation-analytics', title: 'Análisis de Donaciones', size: 'medium', gridArea: '2 / 1 / 3 / 2' },
+      { id: 'campaign-effectiveness', type: 'campaign-effectiveness', title: 'Efectividad de Campañas', size: 'large', gridArea: '2 / 2 / 3 / 4' },
     ]);
     localStorage.removeItem('dashboardLayout');
   };
@@ -274,10 +379,10 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
 
       <div className="dashboard-help mb-4 p-3 bg-blue-50 text-blue-800 rounded-md">
         <p className="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 info-icon" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
-          Arrastra los widgets por su barra de título para reorganizarlos. Haz clic en el icono de redimensionar para cambiar su tamaño.
+          Arrastra los widgets por su barra de título para reorganizarlos. Haz clic en el icono de redimensionar para cambiar su tamaño o arrastra la esquina inferior derecha.
         </p>
       </div>
 
@@ -287,13 +392,22 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-2 gap-4 auto-rows-min">
+        <div 
+          className="grid gap-4"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${gridLayout.columns}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${gridLayout.rows}, auto)`,
+            gridAutoFlow: 'dense'
+          }}
+        >
           <SortableContext items={widgets.map(w => w.id)} strategy={rectSortingStrategy}>
             {widgets.map((widget) => (
               <SortableWidget 
                 key={widget.id} 
                 widget={widget} 
-                onSizeChange={changeWidgetSize} 
+                onSizeChange={changeWidgetSize}
+                onResize={handleResize}
               />
             ))}
           </SortableContext>
@@ -317,53 +431,6 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      <style jsx global>{`
-        .dashboard-widget {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: box-shadow 0.3s ease, transform 0.2s ease;
-          border: 1px solid #f0f0f0;
-        }
-        
-        .dashboard-widget:hover {
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .dashboard-widget.is-dragging {
-          z-index: 10;
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-        
-        .widget-header {
-          position: relative;
-          cursor: grab;
-          background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='2' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='2' cy='12' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='12' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23D1D5DB'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: 8px center;
-          background-size: 14px;
-          padding-left: 28px;
-        }
-        
-        .widget-header:active {
-          cursor: grabbing;
-        }
-        
-        .widget-controls button {
-          background-color: #f3f4f6;
-          border-radius: 4px;
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .widget-controls button:hover {
-          background-color: #e5e7eb;
-        }
-      `}</style>
     </div>
   );
 };
