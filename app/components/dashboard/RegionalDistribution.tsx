@@ -289,10 +289,64 @@ const RegionalDistribution: React.FC<RegionalDistributionProps> = ({ showSummary
     );
   };
 
+  // Renderizar el componente
   return (
     <div className="space-y-4">
+      {/* Mostrar resumen de métricas */}
       {renderSummary()}
-      {!showSummaryOnly && renderCharts()}
+      
+      {/* Mostrar gráficos solo si no es showSummaryOnly */}
+      {!showSummaryOnly && (
+        <>
+          {/* Controles para los gráficos */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <select 
+              className="px-3 py-1 border rounded-md text-sm"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "affiliates" | "percentage" | "growth")}
+            >
+              <option value="affiliates">Ordenar por Afiliados</option>
+              <option value="percentage">Ordenar por Porcentaje</option>
+              <option value="growth">Ordenar por Crecimiento</option>
+            </select>
+            
+            <select 
+              className="px-3 py-1 border rounded-md text-sm"
+              value={showCount}
+              onChange={(e) => setShowCount(Number(e.target.value))}
+            >
+              <option value="5">Mostrar 5</option>
+              <option value="10">Mostrar 10</option>
+              <option value="15">Mostrar 15</option>
+              <option value="20">Mostrar 20</option>
+            </select>
+            
+            <div className="flex border rounded-md overflow-hidden">
+              <button 
+                className={`px-3 py-1 text-sm ${viewMode === 'chart' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                onClick={() => setViewMode('chart')}
+              >
+                Gráfico
+              </button>
+              <button 
+                className={`px-3 py-1 text-sm ${viewMode === 'map' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                onClick={() => setViewMode('map')}
+              >
+                Mapa
+              </button>
+              <button 
+                className={`px-3 py-1 text-sm ${viewMode === 'table' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                onClick={() => setViewMode('table')}
+              >
+                Tabla
+              </button>
+            </div>
+          </div>
+          
+          {/* Gráficos según el modo de visualización */}
+          {renderCharts()}
+        </>
+      )}
     </div>
   );
 };

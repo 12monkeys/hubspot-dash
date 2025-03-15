@@ -255,12 +255,15 @@ const mockCampaignMetrics: CampaignMetrics = {
   ]
 };
 
-export default function CampaignEffectiveness({ showOnlySummary = false, showOnlyCharts = false }: CampaignEffectivenessProps) {
+const CampaignEffectiveness: React.FC<CampaignEffectivenessProps> = ({ 
+  showOnlySummary = false, 
+  showOnlyCharts = false 
+}) => {
   const [metrics, setMetrics] = useState<CampaignMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState("12m");
-  const [selectedMetric, setSelectedMetric] = useState<string>("conversionRate");
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<"overview" | "conversion" | "engagement" | "roi">("overview");
 
   useEffect(() => {
     // En desarrollo, usamos datos simulados
@@ -292,7 +295,7 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
 
     fetchData();
     */
-  }, [timeframe]);
+  }, []);
 
   if (loading) {
     return (
@@ -561,13 +564,15 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
             <div className="flex justify-end mb-2">
               <select 
                 className="border border-gray-300 rounded px-2 py-1 text-sm"
-                value={selectedMetric}
-                onChange={(e) => setSelectedMetric(e.target.value)}
+                value={selectedCampaign || ""}
+                onChange={(e) => setSelectedCampaign(e.target.value || null)}
               >
-                <option value="conversionRate">Tasa de Conversión</option>
-                <option value="engagementScore">Engagement</option>
-                <option value="completionPercentage">Porcentaje Completado</option>
-                <option value="roi">ROI</option>
+                <option value="">Todas las campañas</option>
+                {metrics?.campaigns.map((campaign) => (
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </option>
+                ))}
               </select>
             </div>
             <ResponsiveContainer width="100%" height="90%">
@@ -579,7 +584,7 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                 <XAxis 
                   type="number" 
-                  domain={selectedMetric === 'roi' ? [0, 'dataMax + 10'] : [0, 100]} 
+                  domain={selectedCampaign ? [0, 100] : [0, 100]} 
                 />
                 <YAxis dataKey="name" type="category" width={120} />
                 <Tooltip 
@@ -595,11 +600,9 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
                 />
                 <Legend />
                 <Bar 
-                  dataKey={selectedMetric} 
+                  dataKey={selectedCampaign ? 'conversionRate' : 'engagementScore'} 
                   name={
-                    selectedMetric === 'conversionRate' ? 'Tasa de Conversión' :
-                    selectedMetric === 'engagementScore' ? 'Engagement' :
-                    selectedMetric === 'completionPercentage' ? 'Porcentaje Completado' : 'ROI'
+                    selectedCampaign ? 'Tasa de Conversión' : 'Engagement'
                   }
                   fill="#8884d8" 
                   radius={[0, 4, 4, 0]}
@@ -662,20 +665,69 @@ export default function CampaignEffectiveness({ showOnlySummary = false, showOnl
     );
   };
 
-  // Renderizar el componente según las props
-  if (showOnlySummary) {
-    return renderKPICards();
-  }
-
-  if (showOnlyCharts) {
-    return renderCharts();
-  }
-
-  // Renderizar todo el contenido si no se especifica ninguna prop
+  // Renderizar el componente
   return (
     <div className="space-y-6">
-      {renderKPICards()}
-      {renderCharts()}
+      {/* Mostrar resumen si no es showOnlyCharts */}
+      {!showOnlyCharts && renderKPICards()}
+      
+      {/* Mostrar gráficos si no es showOnlySummary */}
+      {!showOnlySummary && (
+        <>
+          {/* Controles para los gráficos */}
+          <div className="flex flex-wrap justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold mb-2 sm:mb-0">Análisis de Campañas</h3>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={selectedCampaign || ""}
+                onChange={(e) => setSelectedCampaign(e.target.value || null)}
+                className="px-3 py-1 border rounded-md text-sm"
+              >
+                <option value="">Todas las campañas</option>
+                {metrics?.campaigns.map((campaign) => (
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.name}
+                  </option>
+                ))}
+              </select>
+              
+              <div className="flex border rounded-md overflow-hidden">
+                <button 
+                  className={`px-3 py-1 text-sm ${chartType === 'overview' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                  onClick={() => setChartType('overview')}
+                >
+                  General
+                </button>
+                <button 
+                  className={`px-3 py-1 text-sm ${chartType === 'conversion' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                  onClick={() => setChartType('conversion')}
+                >
+                  Conversión
+                </button>
+                <button 
+                  className={`px-3 py-1 text-sm ${chartType === 'engagement' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                  onClick={() => setChartType('engagement')}
+                >
+                  Engagement
+                </button>
+                <button 
+                  className={`px-3 py-1 text-sm ${chartType === 'roi' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                  onClick={() => setChartType('roi')}
+                >
+                  ROI
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderCharts()}
+          </div>
+        </>
+      )}
     </div>
   );
-} 
+};
+
+export default CampaignEffectiveness; 

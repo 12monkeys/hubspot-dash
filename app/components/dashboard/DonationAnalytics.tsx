@@ -58,11 +58,14 @@ const mockDonationMetrics: DonationMetrics = {
   ]
 };
 
-export default function DonationAnalytics({ showOnlySummary = false, showOnlyCharts = false }: DonationAnalyticsProps) {
+const DonationAnalytics: React.FC<DonationAnalyticsProps> = ({ 
+  showOnlySummary = false, 
+  showOnlyCharts = false 
+}) => {
   const [metrics, setMetrics] = useState<DonationMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState("6m");
+  const [timeframe, setTimeframe] = useState<"1m" | "3m" | "6m" | "1y">("6m");
 
   useEffect(() => {
     // En desarrollo, usamos datos simulados
@@ -303,20 +306,40 @@ export default function DonationAnalytics({ showOnlySummary = false, showOnlyCha
     </div>
   );
 
-  // Renderizar el componente según las props
-  if (showOnlySummary) {
-    return renderKPICards();
-  }
-
-  if (showOnlyCharts) {
-    return renderCharts();
-  }
-
-  // Renderizar todo el contenido si no se especifica ninguna prop
+  // Renderizar el componente
   return (
     <div className="space-y-6">
-      {renderKPICards()}
-      {renderCharts()}
+      {/* Mostrar resumen si no es showOnlyCharts */}
+      {!showOnlyCharts && renderKPICards()}
+      
+      {/* Mostrar gráficos si no es showOnlySummary */}
+      {!showOnlySummary && (
+        <>
+          {/* Controles para los gráficos */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Análisis de Donaciones</h3>
+            <div className="flex space-x-2">
+              <select
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value as "1m" | "3m" | "6m" | "1y")}
+                className="px-3 py-1 border rounded-md text-sm"
+              >
+                <option value="1m">Último mes</option>
+                <option value="3m">Últimos 3 meses</option>
+                <option value="6m">Últimos 6 meses</option>
+                <option value="1y">Último año</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderCharts()}
+          </div>
+        </>
+      )}
     </div>
   );
-} 
+};
+
+export default DonationAnalytics; 

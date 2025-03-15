@@ -118,7 +118,7 @@ const SortableWidget = ({ widget, onSizeChange }: { widget: Widget, onSizeChange
           <h3 className="text-lg font-semibold text-gray-800">{widget.title}</h3>
           <div className="widget-controls flex space-x-2">
             <button 
-              className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors bg-gray-100 rounded-md"
               title={`Cambiar tamaño (actual: ${widget.size}, siguiente: ${getNextSize(widget.size)})`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -339,25 +339,29 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
         
         .widget-header {
           position: relative;
-        }
-        
-        .widget-header::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
+          cursor: grab;
           background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='2' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='2' cy='12' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='7' cy='12' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='2' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='7' r='2' fill='%23D1D5DB'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23D1D5DB'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: 8px center;
           background-size: 14px;
-          opacity: 0;
-          transition: opacity 0.2s ease;
+          padding-left: 28px;
         }
         
-        .widget-header:hover::before {
-          opacity: 0.5;
+        .widget-header:active {
+          cursor: grabbing;
+        }
+        
+        .widget-controls button {
+          background-color: #f3f4f6;
+          border-radius: 4px;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .widget-controls button:hover {
+          background-color: #e5e7eb;
         }
       `}</style>
     </div>

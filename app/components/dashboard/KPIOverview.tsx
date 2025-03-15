@@ -3,8 +3,14 @@
 import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell
+  BarChart, Bar, PieChart, Pie, Cell, ComposedChart
 } from "recharts";
+
+// Importar los componentes Card directamente
+import { Card } from "../ui/Card";
+import { CardHeader } from "../ui/Card";
+import { CardTitle } from "../ui/Card";
+import { CardContent } from "../ui/Card";
 
 type RegionDistribution = {
   region: string;
@@ -91,10 +97,12 @@ const mockMetrics: Metrics = {
   ]
 };
 
-export default function KPIOverview({ showOnlyKPIs = false }: KPIOverviewProps) {
+// Componente principal
+const KPIOverview: React.FC<KPIOverviewProps> = ({ showOnlyKPIs = false }) => {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState("30d");
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     // Simular una carga de datos
@@ -257,80 +265,105 @@ export default function KPIOverview({ showOnlyKPIs = false }: KPIOverviewProps) 
   }
   
   return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      {renderKPICards()}
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Distribución Regional</h3>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={metrics.regionDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="count"
-                  nameKey="region"
-                  label={({name, percent}) => {
-                    if (typeof percent === 'number') {
-                      return `${name}: ${(percent * 100).toFixed(0)}%`;
-                    }
-                    return `${name}`;
-                  }}
-                >
-                  {metrics.regionDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value, name, props) => {
-                    if (props && props.payload && typeof value === 'number') {
-                      return [
-                        `${formatNumber(value)} (${formatPercentage(props.payload.percentage)})`,
-                        props.payload.region
-                      ];
-                    }
-                    return [value, name];
-                  }}
-                />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Distribución de Cuotas</h3>
-          <div className="chart-container">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.quotaDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="quota" label={{ value: 'Cuota (€)', position: 'insideBottom', offset: -5 }} />
-                <YAxis label={{ value: 'Número de Afiliados', angle: -90, position: 'insideLeft' }} />
-                <Tooltip 
-                  formatter={(value, name, props) => {
-                    if (props && props.payload && typeof value === 'number') {
-                      return [
-                        `${formatNumber(value)} afiliados (${formatPercentage(props.payload.percentage)})`,
-                        "Afiliados"
-                      ];
-                    }
-                    return [value, name];
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="count" name="Afiliados" fill="#8884d8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Tarjetas KPI */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {renderKPICards()}
       </div>
+      
+      {/* Gráficos (solo si no es showOnlyKPIs) */}
+      {!showOnlyKPIs && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de tendencia de afiliados */}
+          <Card className="shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Tendencia de Afiliados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                {loading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <span className="text-gray-500">Cargando datos...</span>
+                  </div>
+                ) : error ? (
+                  <div className="h-full flex items-center justify-center">
+                    <span className="text-red-500">Error: {error}</span>
+                  </div>
+                ) : metrics ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={metrics.timeSeriesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="affiliates" 
+                        name="Afiliados"
+                        stroke="#0088FE" 
+                        activeDot={{ r: 8 }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="sympathizers" 
+                        name="Simpatizantes"
+                        stroke="#00C49F" 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Gráfico de tasa de conversión */}
+          <Card className="shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Tasa de Conversión</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                {loading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <span className="text-gray-500">Cargando datos...</span>
+                  </div>
+                ) : error ? (
+                  <div className="h-full flex items-center justify-center">
+                    <span className="text-red-500">Error: {error}</span>
+                  </div>
+                ) : metrics ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={metrics.timeSeriesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey="affiliates" 
+                        name="Afiliados" 
+                        fill="#8884d8" 
+                      />
+                      <Line 
+                        yAxisId="right" 
+                        type="monotone" 
+                        dataKey="conversionRate" 
+                        name="Tasa de Conversión" 
+                        stroke="#ff7300" 
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default KPIOverview;

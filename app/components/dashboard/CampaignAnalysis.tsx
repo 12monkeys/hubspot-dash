@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import CampaignChart from "./CampaignChart";
-import DistribucionRegional from "./DistribucionRegional";
 import CampaignDetail from "./CampaignDetail";
 import CampaignKPI from "./CampaignKPI";
 import { Campaign } from "../../types/campaign";
+import DistribucionRegional from "./DistribucionRegional";
 
 export default function CampaignAnalysis() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
