@@ -228,7 +228,7 @@ export default function KPIOverview({ showOnlyKPIs = false }: KPIOverviewProps) 
                 </p>
               )}
             </div>
-            <div className={`kpi-icon ${item.iconBg}`}>{item.icon}</div>
+            <div className={`kpi-icon ${item.iconBg} text-gray-700`}>{item.icon}</div>
           </div>
           {!showOnlyKPIs && (
             <div className="h-16 mt-2">

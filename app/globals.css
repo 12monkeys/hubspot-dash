@@ -2,25 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS globales */
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-rgb: 249, 250, 251;
-  --primary-color: 136, 132, 216;
-  --secondary-color: 130, 202, 157;
-  --accent-color: 255, 187, 40;
+  --primary-color: 59, 130, 246; /* Azul */
+  --secondary-color: 16, 185, 129; /* Verde */
+  --accent-color: 245, 158, 11; /* Amarillo */
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+/* Estilos base */
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
-  font-family: var(--font-inter);
+  font-family: 'Lexend Deca', sans-serif;
   min-height: 100vh;
 }
 
-/* Mejoras para los componentes de la UI */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Lexend Deca', sans-serif;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Componentes personalizados */
 @layer components {
+  /* Tarjetas */
   .card {
-    @apply bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6;
+    @apply bg-white rounded-lg shadow-md border border-gray-100 p-6;
   }
   
   .card-header {
@@ -31,19 +42,65 @@ body {
     @apply text-xl font-bold text-gray-800;
   }
   
+  /* Secciones del dashboard */
   .dashboard-section {
     @apply mb-8;
   }
   
+  /* Tarjetas KPI */
   .kpi-card {
-    @apply bg-white p-4 rounded-xl shadow-card hover:shadow-card-hover transition-shadow;
+    @apply bg-white p-5 rounded-lg shadow-md border border-gray-100 transition-all duration-300;
+  }
+  
+  .kpi-card:hover {
+    @apply shadow-lg -translate-y-1;
   }
   
   .kpi-icon {
-    @apply text-3xl p-3 rounded-full;
+    @apply text-2xl p-3 rounded-full flex items-center justify-center w-12 h-12;
   }
   
+  /* Contenedores de gráficos */
   .chart-container {
-    @apply h-80 bg-white p-4 rounded-xl shadow-card;
+    @apply h-80 bg-white p-5 rounded-lg shadow-md border border-gray-100;
+  }
+
+  /* Pestañas de navegación */
+  .tab-button {
+    @apply px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap;
+  }
+
+  .tab-button-active {
+    @apply border-blue-500 text-blue-600;
+  }
+
+  .tab-button-inactive {
+    @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+  }
+
+  /* Controles de formulario */
+  .control-select {
+    @apply px-2 py-1 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+
+  .control-button {
+    @apply px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+
+  /* Tablas de datos */
+  .data-table {
+    @apply min-w-full divide-y divide-gray-200 border-collapse;
+  }
+
+  .data-table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
+  }
+
+  .data-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-500;
+  }
+
+  .data-table tr:nth-child(even) {
+    @apply bg-gray-50;
   }
 } 

@@ -1,0 +1,120 @@
+/* Estilos para el dashboard flexible */
+.flexible-dashboard {
+  width: 100%;
+  padding: 16px 0;
+  font-family: 'Lexend Deca', sans-serif;
+}
+
+.dashboard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+
+.dashboard-widget {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.dashboard-widget:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.widget-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.widget-title {
+  padding: 12px 16px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.widget-title::after {
+  content: "⋮";
+  font-size: 18px;
+  color: #9ca3af;
+}
+
+.widget-content {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+}
+
+/* Estilos para los controles de redimensionamiento */
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2IDYiIHN0eWxlPSJiYWNrZ3JvdW5kLWNvbG9yOiNmZmZmZmYwMCIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI2cHgiIGhlaWdodD0iNnB4Ij48ZyBvcGFjaXR5PSIwLjMwMiI+PHBhdGggZD0iTSA2IDYgTCAwIDYgTCAwIDQuMiBMIDQgNC4yIEwgNC4yIDQuMiBMIDQuMiAwIEwgNiAwIEwgNiA2IEwgNiA2IFoiIGZpbGw9IiMwMDAwMDAiLz48L2c+PC9zdmc+');
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  padding: 0 3px 3px 0;
+  background-origin: content-box;
+  box-sizing: border-box;
+  cursor: se-resize;
+}
+
+/* Estilos para los widgets específicos */
+.kpi-card {
+  margin-bottom: 0 !important;
+  height: auto !important;
+}
+
+/* Estilos para el modo de arrastre */
+.react-grid-item.react-grid-placeholder {
+  background: #3b82f6;
+  opacity: 0.2;
+  transition-duration: 100ms;
+  z-index: 2;
+  border-radius: 8px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .dashboard-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+} 
