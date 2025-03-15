@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener el token de acceso desde las variables de entorno
-    const apiKey = process.env.HUBSPOT_API_KEY;
+    const apiKey = process.env.HUBSPOT_ACCESS_TOKEN || process.env.HUBSPOT_API_KEY;
     
     if (!apiKey) {
       return NextResponse.json({ error: 'API key no configurada' }, { status: 500 });

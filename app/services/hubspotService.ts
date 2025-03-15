@@ -27,7 +27,7 @@ export class HubspotService {
   private async getAccessToken(): Promise<string> {
     // En un entorno real, aquí se obtendría el token de acceso
     // mediante OAuth o desde una variable de entorno
-    return process.env.HUBSPOT_API_KEY || this.apiKey;
+    return process.env.HUBSPOT_ACCESS_TOKEN || process.env.HUBSPOT_API_KEY || this.apiKey;
   }
 
   // Método para realizar peticiones a la API de HubSpot

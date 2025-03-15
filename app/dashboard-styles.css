@@ -189,20 +189,31 @@
   overflow: hidden;
 }
 
+/* Estilos para la barra de título estilo Windows */
 .widget-header {
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  color: white;
   padding: 0.75rem 1rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: grab;
+  user-select: none;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.widget-header:active {
+  cursor: grabbing;
 }
 
 .widget-content {
   flex: 1;
   overflow: auto;
   padding: 1rem;
+  background-color: white;
 }
 
 .widget-controls {
@@ -215,14 +226,22 @@
   border: none;
   cursor: pointer;
   padding: 0.25rem;
-  border-radius: 4px;
-  color: #6b7280;
+  border-radius: 50%;
+  color: white;
   transition: background-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
 .widget-controls button:hover {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.widget-controls button:last-child:hover {
+  background-color: #ef4444;
 }
 
 /* Indicador visual para arrastrar */
@@ -273,6 +292,11 @@
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
+.grid-cols-6 {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+
 /* Estilos para el redimensionamiento */
 .resize-handle {
   position: absolute;
@@ -290,4 +314,66 @@
 
 .resize-handle:hover {
   opacity: 1;
+}
+
+/* Estilos para widgets minimizados */
+.widget-minimized {
+  height: 40px !important;
+  overflow: hidden;
+}
+
+/* Estilos para widgets maximizados */
+.widget-maximized {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1000;
+  border-radius: 0;
+}
+
+/* Estilos para el sistema de pestañas */
+.tabs-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tabs-header {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs-header::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-header::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.tabs-header::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.tabs-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.tab-panel {
+  display: none;
+  height: 100%;
+}
+
+.tab-panel.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
 } 

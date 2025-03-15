@@ -223,9 +223,9 @@ const KPIOverview: React.FC<KPIOverviewProps> = ({ showOnlyKPIs = false }) => {
 
   // Renderizar solo los KPIs
   const renderKPICards = () => (
-    <div className="flex flex-wrap gap-4 justify-between">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {kpiItems.map((item, index) => (
-        <div key={index} className="kpi-card flex-1 min-w-[200px]">
+        <div key={index} className="kpi-card">
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-sm font-medium text-gray-500">{item.title}</p>
@@ -267,9 +267,7 @@ const KPIOverview: React.FC<KPIOverviewProps> = ({ showOnlyKPIs = false }) => {
   return (
     <div className="space-y-6">
       {/* Tarjetas KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {renderKPICards()}
-      </div>
+      {renderKPICards()}
       
       {/* Gráficos (solo si no es showOnlyKPIs) */}
       {!showOnlyKPIs && (

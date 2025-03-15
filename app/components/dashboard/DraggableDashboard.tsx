@@ -53,11 +53,17 @@ interface DraggableDashboardProps {
 const SortableWidget = ({ 
   widget, 
   onSizeChange,
-  onResize
+  onResize,
+  onMinimize,
+  onMaximize,
+  onClose
 }: { 
   widget: Widget, 
   onSizeChange: (id: string) => void,
-  onResize: (id: string, width: number, height: number) => void
+  onResize: (id: string, width: number, height: number) => void,
+  onMinimize: (id: string) => void,
+  onMaximize: (id: string) => void,
+  onClose: (id: string) => void
 }) => {
   const {
     attributes,
@@ -71,6 +77,8 @@ const SortableWidget = ({
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const resizeStartPos = useRef<{ x: number, y: number } | null>(null);
   const originalSize = useRef<{ width: number, height: number } | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,8 +86,8 @@ const SortableWidget = ({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1 : 0,
     gridArea: widget.gridArea,
-    width: widget.width ? `${widget.width}px` : '100%',
-    height: widget.height ? `${widget.height}px` : '100%',
+    width: isMaximized ? '100%' : (widget.width ? `${widget.width}px` : '100%'),
+    height: isMaximized ? '100%' : (isMinimized ? '50px' : (widget.height ? `${widget.height}px` : '100%')),
     position: 'relative' as const,
   };
 
@@ -92,6 +100,8 @@ const SortableWidget = ({
 
   // Manejar el inicio del redimensionamiento
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMaximized || isMinimized) return;
+    
     e.preventDefault();
     e.stopPropagation();
     
@@ -105,6 +115,10 @@ const SortableWidget = ({
       // Agregar listeners para el movimiento y fin del redimensionamiento
       document.addEventListener('mousemove', handleResizeMove);
       document.addEventListener('mouseup', handleResizeEnd);
+      
+      // Cambiar el cursor durante el redimensionamiento
+      document.body.style.cursor = 'nwse-resize';
+      document.body.style.userSelect = 'none';
     }
   };
 
@@ -135,14 +149,42 @@ const SortableWidget = ({
       resizeStartPos.current = null;
       originalSize.current = null;
       
+      // Restaurar el cursor
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      
       // Eliminar listeners
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
     }
   };
 
+  // Manejar minimizar
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMinimized(!isMinimized);
+    setIsMaximized(false);
+    onMinimize(widget.id);
+  };
+
+  // Manejar maximizar
+  const handleMaximize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMaximized(!isMaximized);
+    setIsMinimized(false);
+    onMaximize(widget.id);
+  };
+
+  // Manejar cerrar
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose(widget.id);
+  };
+
   // Renderizar el contenido del widget según su tipo
   const renderWidgetContent = () => {
+    if (isMinimized) return null;
+    
     switch (widget.type) {
       case 'kpi-overview':
         return <KPIOverview showOnlyKPIs={widget.size === 'small'} />;
@@ -177,40 +219,66 @@ const SortableWidget = ({
     <div
       ref={(node) => {
         setNodeRef(node);
-        widgetRef.current = node;
+        if (node) widgetRef.current = node;
       }}
       style={style}
-      className={`dashboard-widget ${sizeClasses[widget.size]} transition-all duration-200`}
+      className={`dashboard-widget ${sizeClasses[widget.size]} transition-all duration-200 border border-gray-200 rounded-lg overflow-hidden shadow-lg`}
     >
       <div className="widget-container h-full">
         <div 
-          className="widget-header flex items-center justify-between p-3 bg-white border-b cursor-grab active:cursor-grabbing"
+          className="widget-header flex items-center justify-between p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white cursor-grab active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
-          <h3 className="text-lg font-semibold text-gray-800">{widget.title}</h3>
+          <h3 className="text-lg font-semibold truncate">{widget.title}</h3>
           <div className="widget-controls flex space-x-2">
             <button 
-              className="p-1 text-gray-500 hover:text-gray-700 transition-colors bg-gray-100 rounded-md"
-              title={`Cambiar tamaño (actual: ${widget.size}, siguiente: ${getNextSize(widget.size)})`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSizeChange(widget.id);
-              }}
+              className="p-1 text-white hover:bg-blue-400 rounded-full transition-colors"
+              title="Minimizar"
+              onClick={handleMinimize}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <button 
+              className="p-1 text-white hover:bg-blue-400 rounded-full transition-colors"
+              title={isMaximized ? "Restaurar" : "Maximizar"}
+              onClick={handleMaximize}
+            >
+              {isMaximized ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              )}
+            </button>
+            <button 
+              className="p-1 text-white hover:bg-red-500 rounded-full transition-colors"
+              title="Cerrar"
+              onClick={handleClose}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
           </div>
         </div>
-        <div className="widget-content p-4 bg-white overflow-auto flex-grow">
-          {renderWidgetContent()}
-        </div>
-        <div 
-          className="resize-handle"
-          onMouseDown={handleResizeStart}
-        />
+        {!isMinimized && (
+          <div className="widget-content p-4 bg-white overflow-auto flex-grow">
+            {renderWidgetContent()}
+          </div>
+        )}
+        {!isMinimized && !isMaximized && (
+          <div 
+            className="resize-handle"
+            onMouseDown={handleResizeStart}
+          />
+        )}
       </div>
     </div>
   );
@@ -338,6 +406,23 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
     localStorage.removeItem('dashboardLayout');
   };
 
+  // Función para minimizar un widget
+  const minimizeWidget = (id: string) => {
+    console.log(`Widget ${id} minimizado`);
+    // Aquí puedes implementar la lógica para minimizar
+  };
+
+  // Función para maximizar un widget
+  const maximizeWidget = (id: string) => {
+    console.log(`Widget ${id} maximizado`);
+    // Aquí puedes implementar la lógica para maximizar
+  };
+
+  // Función para cerrar un widget
+  const closeWidget = (id: string) => {
+    setWidgets((items) => items.filter(item => item.id !== id));
+  };
+
   // Si hay un error, mostrar mensaje de error
   if (error) {
     return (
@@ -408,6 +493,9 @@ const DraggableDashboard: React.FC<DraggableDashboardProps> = ({ isLoading = fal
                 widget={widget} 
                 onSizeChange={changeWidgetSize}
                 onResize={handleResize}
+                onMinimize={minimizeWidget}
+                onMaximize={maximizeWidget}
+                onClose={closeWidget}
               />
             ))}
           </SortableContext>
