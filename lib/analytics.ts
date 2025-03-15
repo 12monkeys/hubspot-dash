@@ -1,4 +1,4 @@
-import HubSpotService from '@/services/hubspotService';
+import HubSpotService from '../services/hubspotService';
 import { Workflow, Contact } from '@/types/hubspot';
 
 interface TimeSeriesData {

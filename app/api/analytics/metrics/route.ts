@@ -1,83 +1,80 @@
 import { NextResponse } from "next/server";
-import HubSpotService from "../../../services/hubspotService";
+import { hubspotService } from "../../../services/hubspotService";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../lib/auth";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  // Verificar autenticación
+export async function GET() {
+  // Verificar si el usuario está autenticado
   const session = await getServerSession(authOptions);
+  
   if (!session) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Authentication required" },
+      { status: 401 }
+    );
   }
   
   try {
-    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
-    
     // Obtener datos del dashboard mejorado
-    const dashboardData = await hubspotService.getDashboardMetrics();
+    const dashboardData = await hubspotService.getDashboardData();
     
-    // Transformar los datos para el formato esperado por el componente KPIOverview
-    const data = {
-      totalAffiliates: dashboardData.totalAfiliados,
-      affiliatesChange: 5.2, // Podríamos calcular esto comparando con datos históricos
-      conversionRate: dashboardData.tasaConversion,
-      conversionRateChange: -0.8,
-      totalSympathizers: dashboardData.totalSimpatizantes,
-      sympathizersChange: 8.7,
-      monthlyGrowth: dashboardData.crecimientoMensual,
-      monthlyGrowthChange: 2.3,
-      averageQuota: dashboardData.cuotaPromedio,
-      averageQuotaChange: 0.5,
-      estimatedMonthlyIncome: dashboardData.ingresoCuotasMensual,
-      estimatedIncomeChange: 3.9,
-      activeCampaigns: dashboardData.campañasActivas,
-      activeCampaignsChange: 0,
-      annualProjection: dashboardData.ingresoCuotasMensual * 12,
-      
-      // Usar los datos mejorados
-      regionDistribution: dashboardData.distribucionRegional,
-      quotaDistribution: dashboardData.distribucionCuotas.map(item => ({
-        quota: parseInt(item.rango.split('-')[0]),
-        count: item.count,
-        percentage: item.count / dashboardData.totalAfiliados
-      })),
-      
-      // Mock time series data since it doesn't exist in the interface
-      timeSeriesData: [
-        { month: 'Ene', affiliates: 1200, sympathizers: 3500 },
-        { month: 'Feb', affiliates: 1250, sympathizers: 3650 },
-        { month: 'Mar', affiliates: 1320, sympathizers: 3800 },
-        { month: 'Abr', affiliates: 1380, sympathizers: 3950 },
-        { month: 'May', affiliates: 1450, sympathizers: 4100 },
-        { month: 'Jun', affiliates: 1520, sympathizers: 4300 }
-      ],
-      
-      // Mock data for distributions that don't exist in the interface
-      comunidadesDistribution: dashboardData.distribucionRegional.map(item => ({
-        name: item.region,
-        affiliates: item.count,
-        supporters: Math.round(item.count * 0.7) // Mock data
-      })),
-      
-      tipoAfiliadoDistribution: [
-        { tipo: 'Estándar', count: Math.round(dashboardData.totalAfiliados * 0.65) },
-        { tipo: 'Premium', count: Math.round(dashboardData.totalAfiliados * 0.25) },
-        { tipo: 'Especial', count: Math.round(dashboardData.totalAfiliados * 0.1) }
-      ],
-      
-      // Datos de donaciones
-      totalDonations: dashboardData.totalDonaciones,
-      averageDonation: dashboardData.donacionesPromedio,
-      
-      // Datos de fuentes de adquisición
-      acquisitionSources: dashboardData.fuentesAdquisicion
+    // Extraer métricas generales
+    const generalMetrics = {
+      totalContacts: dashboardData.generalMetrics.totalContacts,
+      totalAffiliates: dashboardData.generalMetrics.totalAffiliates,
+      totalSympathizers: dashboardData.generalMetrics.totalSympathizers,
+      totalDonations: dashboardData.generalMetrics.totalDonations,
+      totalAmount: dashboardData.generalMetrics.totalAmount,
+      conversionRate: dashboardData.generalMetrics.conversionRate,
+      growthRate: dashboardData.generalMetrics.growthRate,
+      avgDonation: dashboardData.generalMetrics.avgDonation,
+      recentCampaigns: dashboardData.generalMetrics.recentCampaigns,
+      monthlyIncome: dashboardData.generalMetrics.monthlyIncome,
+      topRegion: dashboardData.generalMetrics.topRegion
     };
     
-    return NextResponse.json(data);
+    // Extraer métricas de afiliados
+    const affiliateMetrics = {
+      total: dashboardData.affiliateMetrics.total,
+      active: dashboardData.affiliateMetrics.active,
+      inactive: dashboardData.affiliateMetrics.inactive,
+      newThisMonth: dashboardData.affiliateMetrics.newThisMonth,
+      growthRate: dashboardData.affiliateMetrics.growthRate,
+      byRegion: dashboardData.affiliateMetrics.byRegion.map((item: {region: string, count: number, percentage: number}) => ({
+        region: item.region,
+        count: item.count,
+        percentage: item.percentage
+      })),
+      byMonth: dashboardData.affiliateMetrics.byMonth
+    };
+    
+    // Extraer métricas de simpatizantes
+    const sympathizerMetrics = {
+      total: dashboardData.sympathizerMetrics.total,
+      active: dashboardData.sympathizerMetrics.active,
+      inactive: dashboardData.sympathizerMetrics.inactive,
+      newThisMonth: dashboardData.sympathizerMetrics.newThisMonth,
+      growthRate: dashboardData.sympathizerMetrics.growthRate,
+      byRegion: dashboardData.sympathizerMetrics.byRegion.map((item: {region: string, count: number, percentage: number}) => ({
+        region: item.region,
+        count: item.count,
+        percentage: item.percentage
+      })),
+      byMonth: dashboardData.sympathizerMetrics.byMonth
+    };
+    
+    return NextResponse.json({
+      generalMetrics,
+      affiliateMetrics,
+      sympathizerMetrics
+    });
   } catch (error) {
-    console.error("Error al obtener métricas:", error);
-    return NextResponse.json({ error: "Error al obtener métricas" }, { status: 500 });
+    console.error("Error fetching metrics:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch metrics" },
+      { status: 500 }
+    );
   }
 } 

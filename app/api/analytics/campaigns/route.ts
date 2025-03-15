@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import HubSpotService from "../../../services/hubspotService";
+import { hubspotService } from "../../../services/hubspotService";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../lib/auth";
 
@@ -14,8 +14,7 @@ export async function GET() {
     }
 
     // Get dashboard metrics from HubSpot
-    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
-    const dashboardData = await hubspotService.getDashboardMetrics();
+    const dashboardData = await hubspotService.getDashboardData();
 
     // Create campaign metrics from available data
     // Note: We're using mock data structure since the actual properties don't exist yet

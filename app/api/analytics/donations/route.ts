@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/lib/auth';
-import HubSpotService from '@/app/services/hubspotService';
+import { hubspotService } from '@/app/services/hubspotService';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,7 @@ export async function GET() {
     }
 
     // Get dashboard metrics from HubSpot
-    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN || "");
-    const dashboardData = await hubspotService.getDashboardMetrics();
+    const dashboardData = await hubspotService.getDashboardData();
 
     // Create donation metrics from available data
     // Note: We're using mock data structure since the actual properties don't exist yet

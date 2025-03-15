@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import HubSpotService from '../../services/hubspotService';
+import { hubspotService } from '../../services/hubspotService';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,16 +16,15 @@ export async function GET() {
     console.log('Token length:', process.env.HUBSPOT_ACCESS_TOKEN.length);
     console.log('Token prefix:', process.env.HUBSPOT_ACCESS_TOKEN.substring(0, 6) + '...');
     
-    const hubspotService = new HubSpotService(process.env.HUBSPOT_ACCESS_TOKEN);
-    const dashboardMetrics = await hubspotService.getDashboardMetrics();
+    const dashboardData = await hubspotService.getDashboardData();
     
-    if (!dashboardMetrics) {
-      throw new Error('No se pudieron obtener las métricas del dashboard');
+    if (!dashboardData) {
+      throw new Error('No se pudieron obtener los datos del dashboard');
     }
     
-    return NextResponse.json(dashboardMetrics);
+    return NextResponse.json(dashboardData);
   } catch (error: any) {
-    console.error('Error detallado al obtener métricas:', {
+    console.error('Error detallado al obtener datos del dashboard:', {
       name: error?.name || 'Unknown Error',
       message: error?.message || 'No error message available',
       stack: error?.stack || 'No stack trace available',
