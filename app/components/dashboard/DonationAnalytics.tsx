@@ -28,6 +28,12 @@ type DonationMetrics = {
   donationsByType: DonationsByType[];
 };
 
+// Props para el componente
+interface DonationAnalyticsProps {
+  showOnlySummary?: boolean;
+  showOnlyCharts?: boolean;
+}
+
 // Colores para los gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -52,7 +58,7 @@ const mockDonationMetrics: DonationMetrics = {
   ]
 };
 
-export default function DonationAnalytics() {
+export default function DonationAnalytics({ showOnlySummary = false, showOnlyCharts = false }: DonationAnalyticsProps) {
   const [metrics, setMetrics] = useState<DonationMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,49 +123,51 @@ export default function DonationAnalytics() {
     }).format(value);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Total Donaciones</p>
-              <p className="mt-1 text-2xl font-bold">{metrics.totalDonations.toLocaleString()}</p>
-            </div>
-            <div className="text-3xl bg-purple-50 p-3 rounded-full">💰</div>
+  // Renderizar solo las tarjetas KPI
+  const renderKPICards = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="kpi-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Total Donaciones</p>
+            <p className="mt-1 text-2xl font-bold">{metrics.totalDonations.toLocaleString()}</p>
           </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Importe Total</p>
-              <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.totalAmount)}</p>
-              <p className={`text-xs text-green-600 font-medium`}>
-                ▲ {metrics.donationGrowth.toFixed(1)}%
-              </p>
-            </div>
-            <div className="text-3xl bg-green-50 p-3 rounded-full">💸</div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Donación Promedio</p>
-              <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.averageDonation)}</p>
-            </div>
-            <div className="text-3xl bg-blue-50 p-3 rounded-full">📊</div>
-          </div>
+          <div className="kpi-icon bg-purple-50">💰</div>
         </div>
       </div>
+      
+      <div className="kpi-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Importe Total</p>
+            <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.totalAmount)}</p>
+            <p className={`text-xs text-green-600 font-medium`}>
+              ▲ {metrics.donationGrowth.toFixed(1)}%
+            </p>
+          </div>
+          <div className="kpi-icon bg-green-50">💸</div>
+        </div>
+      </div>
+      
+      <div className="kpi-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Donación Promedio</p>
+            <p className="mt-1 text-2xl font-bold">{formatCurrency(metrics.averageDonation)}</p>
+          </div>
+          <div className="kpi-icon bg-blue-50">📊</div>
+        </div>
+      </div>
+    </div>
+  );
 
-      {/* Charts */}
+  // Renderizar solo los gráficos
+  const renderCharts = () => (
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-lg font-semibold mb-4">Tendencia de Donaciones</h3>
-          <div className="h-80 bg-white p-4 rounded-lg shadow">
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={metrics.monthlyData}
@@ -215,7 +223,7 @@ export default function DonationAnalytics() {
 
         <div>
           <h3 className="text-lg font-semibold mb-4">Distribución por Tipo</h3>
-          <div className="h-80 bg-white p-4 rounded-lg shadow">
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -227,17 +235,27 @@ export default function DonationAnalytics() {
                   fill="#8884d8"
                   dataKey="amount"
                   nameKey="type"
-                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({name, percent}) => {
+                    if (typeof percent === 'number') {
+                      return `${name}: ${(percent * 100).toFixed(0)}%`;
+                    }
+                    return `${name}`;
+                  }}
                 >
                   {metrics.donationsByType.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value, name, props) => [
-                    formatCurrency(value as number),
-                    props.payload.type
-                  ]}
+                  formatter={(value, name, props) => {
+                    if (props && props.payload) {
+                      return [
+                        formatCurrency(value as number),
+                        props.payload.type
+                      ];
+                    }
+                    return [value, name];
+                  }}
                 />
                 <Legend layout="vertical" verticalAlign="middle" align="right" />
               </PieChart>
@@ -248,7 +266,7 @@ export default function DonationAnalytics() {
 
       <div>
         <h3 className="text-lg font-semibold mb-4">Evolución de Donación Promedio</h3>
-        <div className="h-64 bg-white p-4 rounded-lg shadow">
+        <div className="chart-container h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={metrics.monthlyData}
@@ -264,10 +282,12 @@ export default function DonationAnalytics() {
                 label={{ value: 'Donación Promedio (€)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
-                formatter={(value) => [
-                  formatCurrency(value as number),
-                  "Donación Promedio"
-                ]}
+                formatter={(value) => {
+                  if (typeof value === 'number') {
+                    return [formatCurrency(value), "Donación Promedio"];
+                  }
+                  return [value, "Donación Promedio"];
+                }}
               />
               <Legend />
               <Bar 
@@ -280,6 +300,23 @@ export default function DonationAnalytics() {
           </ResponsiveContainer>
         </div>
       </div>
+    </div>
+  );
+
+  // Renderizar el componente según las props
+  if (showOnlySummary) {
+    return renderKPICards();
+  }
+
+  if (showOnlyCharts) {
+    return renderCharts();
+  }
+
+  // Renderizar todo el contenido si no se especifica ninguna prop
+  return (
+    <div className="space-y-6">
+      {renderKPICards()}
+      {renderCharts()}
     </div>
   );
 } 

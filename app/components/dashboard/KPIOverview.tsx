@@ -43,6 +43,11 @@ type Metrics = {
   }[];
 };
 
+// Props para el componente
+interface KPIOverviewProps {
+  showOnlyKPIs?: boolean;
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 // Datos simulados para usar directamente
@@ -86,7 +91,7 @@ const mockMetrics: Metrics = {
   ]
 };
 
-export default function KPIOverview() {
+export default function KPIOverview({ showOnlyKPIs = false }: KPIOverviewProps) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState("30d");
@@ -147,6 +152,7 @@ export default function KPIOverview() {
       value: metrics.totalAffiliates.toLocaleString(),
       change: metrics.affiliatesChange,
       icon: "👥",
+      iconBg: "bg-blue-50",
       trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.affiliates }))
     },
     {
@@ -154,6 +160,7 @@ export default function KPIOverview() {
       value: `${metrics.conversionRate.toFixed(1)}%`,
       change: metrics.conversionRateChange,
       icon: "📈",
+      iconBg: "bg-green-50",
       trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.conversionRate }))
     },
     {
@@ -161,6 +168,7 @@ export default function KPIOverview() {
       value: metrics.totalSympathizers.toLocaleString(),
       change: metrics.sympathizersChange,
       icon: "🤝",
+      iconBg: "bg-purple-50",
       trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.sympathizers }))
     },
     {
@@ -168,59 +176,96 @@ export default function KPIOverview() {
       value: `${metrics.monthlyGrowth.toFixed(1)}%`,
       change: metrics.monthlyGrowthChange,
       icon: "📆",
+      iconBg: "bg-yellow-50",
       trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.averageQuota }))
+    },
+    {
+      title: "Cuota Promedio",
+      value: `${metrics.averageQuota.toFixed(2)}€`,
+      change: metrics.averageQuotaChange,
+      icon: "💰",
+      iconBg: "bg-red-50",
+      trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.averageQuota }))
+    },
+    {
+      title: "Ingreso Mensual Est.",
+      value: `${metrics.estimatedMonthlyIncome.toFixed(2)}K€`,
+      change: metrics.estimatedIncomeChange,
+      icon: "💶",
+      iconBg: "bg-indigo-50",
+      trend: metrics.timeSeriesData.map(d => ({ date: d.date, value: d.averageQuota * d.affiliates / 1000 }))
     }
   ];
   
-  return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpiItems.map((item, index) => (
-          <div key={index} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">{item.title}</p>
-                <p className="mt-1 text-2xl font-bold">{item.value}</p>
-                {item.change !== null && (
-                  <p className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
-                    {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(1)}%
-                  </p>
-                )}
-              </div>
-              <div className="text-3xl bg-blue-50 p-3 rounded-full">{item.icon}</div>
+  // Formateador para números
+  const formatNumber = (value: number | string) => {
+    if (typeof value === 'number') {
+      return value.toLocaleString();
+    }
+    return value;
+  };
+
+  // Formateador para porcentajes
+  const formatPercentage = (value: number | string) => {
+    if (typeof value === 'number') {
+      return `${value.toFixed(1)}%`;
+    }
+    return `${value}%`;
+  };
+
+  // Renderizar solo los KPIs
+  const renderKPICards = () => (
+    <div className="flex flex-wrap gap-4 justify-between">
+      {kpiItems.map((item, index) => (
+        <div key={index} className="kpi-card flex-1 min-w-[200px]">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-medium text-gray-500">{item.title}</p>
+              <p className="mt-1 text-2xl font-bold">{item.value}</p>
+              {item.change !== null && (
+                <p className={`text-xs ${item.change >= 0 ? 'text-green-600' : 'text-red-600'} font-medium`}>
+                  {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change).toFixed(1)}%
+                </p>
+              )}
             </div>
-            <div className="h-20 mt-4">
+            <div className={`kpi-icon ${item.iconBg}`}>{item.icon}</div>
+          </div>
+          {!showOnlyKPIs && (
+            <div className="h-16 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={item.trend}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <Tooltip 
-                    formatter={(value) => [
-                      typeof value === 'number' ? value.toLocaleString() : value,
-                      item.title
-                    ]}
-                  />
                   <Line 
                     type="monotone" 
                     dataKey="value" 
                     stroke="#8884d8" 
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: 4 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+  
+  // Si solo queremos mostrar los KPIs
+  if (showOnlyKPIs) {
+    return renderKPICards();
+  }
+  
+  return (
+    <div className="space-y-8">
+      {/* KPI Cards */}
+      {renderKPICards()}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-lg font-semibold mb-4">Distribución Regional</h3>
-          <div className="h-80 bg-white p-4 rounded-lg shadow">
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -232,7 +277,12 @@ export default function KPIOverview() {
                   fill="#8884d8"
                   dataKey="count"
                   nameKey="region"
-                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({name, percent}) => {
+                    if (typeof percent === 'number') {
+                      return `${name}: ${(percent * 100).toFixed(0)}%`;
+                    }
+                    return `${name}`;
+                  }}
                 >
                   {metrics.regionDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -242,7 +292,7 @@ export default function KPIOverview() {
                   formatter={(value, name, props) => {
                     if (props && props.payload && typeof value === 'number') {
                       return [
-                        `${value.toLocaleString()} (${(props.payload.percentage * 100).toFixed(1)}%)`,
+                        `${formatNumber(value)} (${formatPercentage(props.payload.percentage)})`,
                         props.payload.region
                       ];
                     }
@@ -257,7 +307,7 @@ export default function KPIOverview() {
 
         <div>
           <h3 className="text-lg font-semibold mb-4">Distribución de Cuotas</h3>
-          <div className="h-80 bg-white p-4 rounded-lg shadow">
+          <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={metrics.quotaDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -267,7 +317,7 @@ export default function KPIOverview() {
                   formatter={(value, name, props) => {
                     if (props && props.payload && typeof value === 'number') {
                       return [
-                        `${value.toLocaleString()} afiliados (${(props.payload.percentage * 100).toFixed(1)}%)`,
+                        `${formatNumber(value)} afiliados (${formatPercentage(props.payload.percentage)})`,
                         "Afiliados"
                       ];
                     }

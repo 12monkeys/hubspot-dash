@@ -4,11 +4,46 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+  --background-rgb: 249, 250, 251;
+  --primary-color: 136, 132, 216;
+  --secondary-color: 130, 202, 157;
+  --accent-color: 255, 187, 40;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
   font-family: var(--font-inter);
+  min-height: 100vh;
+}
+
+/* Mejoras para los componentes de la UI */
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6;
+  }
+  
+  .card-header {
+    @apply mb-4;
+  }
+  
+  .card-title {
+    @apply text-xl font-bold text-gray-800;
+  }
+  
+  .dashboard-section {
+    @apply mb-8;
+  }
+  
+  .kpi-card {
+    @apply bg-white p-4 rounded-xl shadow-card hover:shadow-card-hover transition-shadow;
+  }
+  
+  .kpi-icon {
+    @apply text-3xl p-3 rounded-full;
+  }
+  
+  .chart-container {
+    @apply h-80 bg-white p-4 rounded-xl shadow-card;
+  }
 } 

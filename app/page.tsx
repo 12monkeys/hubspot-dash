@@ -12,12 +12,21 @@ import { DashboardMetrics } from './types/hubspot';
 // Modo de desarrollo para ver el dashboard sin autenticación
 const DEV_MODE = true; // Cambiar a false en producción
 
+// Definición de las pestañas
+const TABS = [
+  { id: 'overview', label: 'Resumen General' },
+  { id: 'regional', label: 'Distribución Regional' },
+  { id: 'donations', label: 'Análisis de Donaciones' },
+  { id: 'campaigns', label: 'Efectividad de Campañas' }
+];
+
 export default function Home() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{message: string; details?: string} | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(DEV_MODE);
   const [userEmail, setUserEmail] = useState<string | null>(DEV_MODE ? "dev@example.com" : null);
+  const [activeTab, setActiveTab] = useState('overview');
   const router = useRouter();
 
   useEffect(() => {
@@ -104,14 +113,73 @@ export default function Home() {
     return null;
   }
 
+  // Renderizar el contenido según la pestaña activa
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-xl font-bold mb-4">Indicadores Clave</h2>
+              <KPIOverview showOnlyKPIs={true} />
+            </section>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <section>
+                <h2 className="text-xl font-bold mb-4">Distribución Regional</h2>
+                <RegionalDistribution showSummaryOnly={true} />
+              </section>
+              
+              <section>
+                <h2 className="text-xl font-bold mb-4">Análisis de Donaciones</h2>
+                <DonationAnalytics showOnlySummary={true} />
+              </section>
+            </div>
+            
+            <section>
+              <h2 className="text-xl font-bold mb-4">Efectividad de Campañas</h2>
+              <CampaignEffectiveness showOnlySummary={true} />
+            </section>
+          </div>
+        );
+      
+      case 'regional':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Distribución Regional</h2>
+            <RegionalDistribution />
+          </div>
+        );
+      
+      case 'donations':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Análisis de Donaciones</h2>
+            <DonationAnalytics />
+          </div>
+        );
+      
+      case 'campaigns':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Efectividad de Campañas</h2>
+            <CampaignEffectiveness />
+          </div>
+        );
+      
+      default:
+        return <div>Selecciona una pestaña</div>;
+    }
+  };
+
   // Mostrar el dashboard
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="bg-white shadow-md sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Político</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Político</h1>
             {userEmail && (
               <div className="text-sm text-gray-600 flex items-center">
                 <span className="mr-2">Usuario: {userEmail}</span>
@@ -122,41 +190,34 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Navegación por pestañas */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex -mb-px">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* KPI Overview */}
-        <section className="mb-10">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Resumen de KPIs</h2>
-            <KPIOverview />
-          </div>
-        </section>
-
-        {/* Regional Distribution and Donation Analytics */}
-        <section className="mb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Distribución Regional</h2>
-              <RegionalDistribution />
-            </div>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Análisis de Donaciones</h2>
-              <DonationAnalytics />
-            </div>
-          </div>
-        </section>
-
-        {/* Campaign Effectiveness */}
-        <section className="mb-10">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Efectividad de Campañas</h2>
-            <CampaignEffectiveness />
-          </div>
-        </section>
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {renderTabContent()}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-6">
+      <footer className="bg-white border-t border-gray-200 py-4 mt-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-500">
             © {new Date().getFullYear()} Dashboard Político - Todos los derechos reservados
